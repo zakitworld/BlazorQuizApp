@@ -1,0 +1,72 @@
+@page "/manage-questions"
+@using BlazorQuizApp.Models
+@attribute [Authorize(Roles = "Admin")]
+@using BlazorQuizApp.Services
+@using Microsoft.AspNetCore.Authorization
+@inject QuizService QuizService
+@inject NavigationManager NavigationManager
+
+<h1>Manage Quiz Questions</h1>
+
+<div class="questions-list">
+    @foreach (var question in QuizService.Questions)
+    {
+        <div class="question-item">
+            <p>@question.QuestionText</p>
+            <div class="question-actions">
+                <a href="/question-details/@question.Id" class="btn btn-info btn-sm">Details</a>
+                <a href="/edit-question/@question.Id" class="btn btn-warning btn-sm">Edit</a>
+                <button class="btn btn-danger btn-sm" @onclick="() => DeleteQuestion(question.Id)">Delete</button>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="add-question-form">
+    <h2>Add New Question</h2>
+    <EditForm Model="@newQuestion" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="form-group">
+            <label for="questionText">Question Text</label>
+            <InputText id="questionText" @bind-Value="newQuestion.QuestionText" class="form-control" />
+        </div>
+
+        @for (int i = 0; i < newQuestion.OptionTexts.Count; i++)
+        {
+            var index = i;
+            <div class="form-group">
+                <label for="@($"option-{index}")">Option @(index + 1)</label>
+                <InputText id="@($"option-{index}")" @bind-Value="newQuestion.OptionTexts[index]" class="form-control" />
+            </div>
+        }
+
+        <div class="form-group">
+            <label for="correctOption">Correct Option</label>
+            <InputSelect id="correctOption" @bind-Value="newQuestion.CorrectOptionIndex" class="form-control">
+                @for (int i = 0; i < newQuestion.OptionTexts.Count; i++)
+                {
+                    <option value="@i">Option @(i + 1)</option>
+                }
+            </InputSelect>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add Question</button>
+    </EditForm>
+</div>
+
+@code {
+    private NewQuestionForm newQuestion = new NewQuestionForm();
+
+    private void HandleValidSubmit()
+    {
+        QuizService.AddQuestion(newQuestion);
+        newQuestion = new NewQuestionForm(); // Reset the form
+    }
+
+    private void DeleteQuestion(int id)
+    {
+        QuizService.DeleteQuestion(id);
+    }
+}

@@ -1,0 +1,74 @@
+@page "/edit-question/{id:int}"
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@inject QuizService QuizService
+@inject NavigationManager NavigationManager
+
+<h1>Edit Question</h1>
+
+@if (question == null)
+{
+    <div class="alert alert-warning">Question not found.</div>
+}
+else
+{
+    <EditForm Model="@questionForm" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="form-group">
+            <label for="questionText">Question Text</label>
+            <InputText id="questionText" @bind-Value="questionForm.QuestionText" class="form-control" />
+        </div>
+
+        @for (int i = 0; i < questionForm.OptionTexts.Count; i++)
+        {
+            var index = i;
+            <div class="form-group">
+                <label for="@($"option-{index}")">Option @(index + 1)</label>
+                <InputText id="@($"option-{index}")" @bind-Value="questionForm.OptionTexts[index]" class="form-control" />
+            </div>
+        }
+
+        <div class="form-group">
+            <label for="correctOption">Correct Option</label>
+            <InputSelect id="correctOption" @bind-Value="questionForm.CorrectOptionIndex" class="form-control">
+                @for (int i = 0; i < questionForm.OptionTexts.Count; i++)
+                {
+                    <option value="@i">Option @(i + 1)</option>
+                }
+            </InputSelect>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="/manage-questions" class="btn btn-secondary">Cancel</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private QuizQuestion? question;
+    private NewQuestionForm questionForm = new NewQuestionForm();
+
+    protected override void OnInitialized()
+    {
+        question = QuizService.GetQuestionById(Id);
+        if (question != null)
+        {
+            questionForm.QuestionText = question.QuestionText;
+            questionForm.OptionTexts = question.Options.Select(o => o.Text).ToList();
+            questionForm.CorrectOptionIndex = question.CorrectOptionId - 1;
+        }
+    }
+
+    private void HandleValidSubmit()
+    {
+        if (question != null)
+        {
+            QuizService.UpdateQuestion(Id, questionForm);
+            NavigationManager.NavigateTo("/manage-questions");
+        }
+    }
+}

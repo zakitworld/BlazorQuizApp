@@ -1,0 +1,50 @@
+[
+  {
+    "Id": 1,
+    "QuestionText": "Which of the following statements is true regarding dependency injection?",
+    "Options": [
+      {
+        "Id": 1,
+        "Text": "Dependency injection is a design pattern that allows you to loosely couple your app\u0027s dependencies."
+      },
+      {
+        "Id": 2,
+        "Text": "ASP.NET Core comes with a built-in service container that supports dependency injection."
+      },
+      {
+        "Id": 3,
+        "Text": "ASP.NET Core\u0027s service container supports three service lifetimes: transient, scoped, and singleton."
+      },
+      {
+        "Id": 4,
+        "Text": "All of the above."
+      }
+    ],
+    "SelectedOptionId": -1,
+    "CorrectOptionId": 4
+  },
+  {
+    "Id": 3,
+    "QuestionText": "Which service lifetime is most appropriate for a stateless service?",
+    "Options": [
+      {
+        "Id": 1,
+        "Text": "Transient"
+      },
+      {
+        "Id": 2,
+        "Text": "Scoped"
+      },
+      {
+        "Id": 3,
+        "Text": "Singleton"
+      },
+      {
+        "Id": 4,
+        "Text": "It depends on the specific requirements"
+      }
+    ],
+    "SelectedOptionId": -1,
+    "CorrectOptionId": 1
+  }
+]

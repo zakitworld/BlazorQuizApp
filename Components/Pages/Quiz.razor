@@ -1,0 +1,115 @@
+@page "/quiz"
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@inject QuizService QuizService
+@inject NavigationManager NavigationManager
+
+<h1>Quiz</h1>
+
+@if (QuizService.Questions.Count == 0)
+{
+    <div class="alert alert-info">
+        <p>There are no questions available in the quiz.</p>
+        <a href="/manage-questions" class="btn btn-primary mt-3">Add Questions</a>
+    </div>
+}
+else
+{
+    <div class="quiz-container">
+        @if (!QuizService.IsQuizCompleted)
+        {
+            var question = QuizService.GetCurrentQuestion();
+            var progress = (double)(QuizService.CurrentQuestionIndex + 1) / QuizService.Questions.Count * 100;
+
+            <div class="progress-bar-container">
+                <div class="progress-bar" style="width: @(progress)%;"></div>
+            </div>
+
+            <div class="question-card">
+                <h3>@question.QuestionText</h3>
+                <div class="options">
+                    @foreach (var option in question.Options)
+                    {
+                        <button class="option-button @(GetOptionClass(option))" 
+                                @onclick="() => SelectOption(option)" 
+                                disabled="@QuizService.IsAnswered">
+                            @option.Text
+                        </button>
+                    }
+                </div>
+            </div>
+
+            @if (QuizService.IsAnswered)
+            {
+                <div class="feedback-section">
+                    @if (QuizService.IsCurrentAnswerCorrect)
+                    {
+                        <div class="alert alert-success">Correct!</div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-danger">Incorrect. The correct answer is @QuizService.GetCurrentQuestion().Options.First(o => o.Id == QuizService.GetCurrentQuestion().CorrectOptionId).Text</div>
+                    }
+                    <button class="btn btn-primary" @onclick="NextQuestion">Next</button>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="results-container">
+                <h2>Quiz Results</h2>
+                <div class="result-summary">
+                    <p>You answered @QuizService.Result.CorrectAnswers out of @QuizService.Result.TotalQuestions questions correctly.</p>
+                    <p>Your score: @QuizService.Result.ScorePercentage.ToString("0.##")%</p>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary me-2" @onclick="RestartQuiz">Take Quiz Again</button>
+                    <a href="/" class="btn btn-secondary">Home</a>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        QuizService.LoadQuestions();
+    }
+
+    private void SelectOption(QuizOption option)
+    {
+        QuizService.SelectOption(option);
+    }
+
+    private void NextQuestion()
+    {
+        QuizService.NextQuestion();
+    }
+
+    private void RestartQuiz()
+    {
+        QuizService.RestartQuiz();
+    }
+
+    private string GetOptionClass(QuizOption option)
+    {
+        if (!QuizService.IsAnswered)
+        {
+            return string.Empty;
+        }
+
+        if (option.Id == QuizService.GetCurrentQuestion().CorrectOptionId)
+        {
+            return "correct-answer";
+        }
+
+        if (option.Id == QuizService.SelectedOptionId && !QuizService.IsCurrentAnswerCorrect)
+        {
+            return "incorrect-answer";
+        }
+
+        return string.Empty;
+    }
+}

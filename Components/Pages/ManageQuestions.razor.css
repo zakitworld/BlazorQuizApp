@@ -1,0 +1,40 @@
+h1 {
+    color: #333;
+    margin-bottom: 2rem;
+}
+
+.questions-list {
+    margin-bottom: 3rem;
+}
+
+.question-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+}
+
+.question-item p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.add-question-form {
+    padding: 2rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.add-question-form h2 {
+    margin-bottom: 1.5rem;
+    color: #007bff;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}

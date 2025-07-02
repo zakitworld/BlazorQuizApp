@@ -1,0 +1,42 @@
+@page "/question-details/{id:int}"
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@inject QuizService QuizService
+@inject NavigationManager NavigationManager
+
+<h1>Question Details</h1>
+
+@if (question == null)
+{
+    <div class="alert alert-warning">Question not found.</div>
+}
+else
+{
+    <div class="details-card">
+        <h3>@question.QuestionText</h3>
+        <ul class="options-list">
+            @foreach (var option in question.Options)
+            {
+                <li class="@(option.Id == question.CorrectOptionId ? "correct-option" : "")">
+                    @option.Text
+                </li>
+            }
+        </ul>
+    </div>
+
+    <div class="action-buttons mt-4">
+        <a href="/manage-questions" class="btn btn-secondary">Back to List</a>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private QuizQuestion? question;
+
+    protected override void OnInitialized()
+    {
+        question = QuizService.GetQuestionById(Id);
+    }
+}

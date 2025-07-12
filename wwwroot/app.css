@@ -209,3 +209,28 @@ h1:focus {
         max-width: 98vw;
     }
 }
+
+/* Fix for Home page button contrast */
+.btn-secondary, .btn-secondary:visited, .btn-secondary:active {
+    color: #fff !important;
+    background: #6c757d !important;
+    border: none;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(60, 72, 100, 0.10);
+    border-radius: 8px;
+}
+
+.btn-secondary:hover, .btn-secondary:focus {
+    background: #565e64 !important;
+    color: #fff !important;
+}
+
+/* Ensure .btn-primary text is always white */
+.btn-primary, .btn-primary:visited, .btn-primary:active {
+    color: #fff !important;
+}
+
+/* Fix for Home page link color inside .text-center to avoid blue on gray */
+.text-center a.btn-secondary {
+    color: #fff !important;
+}

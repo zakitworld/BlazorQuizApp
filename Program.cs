@@ -66,29 +66,6 @@ app.MapRazorComponents<App>()
 app.MapAdditionalIdentityEndpoints();
 
 // Seed Admin role and assign to zakitworld@gmail.com
-using (var scope = app.Services.CreateScope())
-{
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
-    // 1. Ensure Admin role exists
-    var adminRole = "Admin";
-    if (!await roleManager.RoleExistsAsync(adminRole))
-    {
-        await roleManager.CreateAsync(new IdentityRole(adminRole));
-    }
-
-    // 2. Find user by email
-    var adminEmail = "zakitworld@gmail.com";
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
-    if (adminUser != null)
-    {
-        // 3. Assign Admin role if not already assigned
-        if (!await userManager.IsInRoleAsync(adminUser, adminRole))
-        {
-            await userManager.AddToRoleAsync(adminUser, adminRole);
-        }
-    }
-}
+await DbInitializer.SeedAdminAsync(app.Services, app.Configuration, app.Logger);
 
 app.Run();

@@ -87,6 +87,137 @@ namespace BlazorQuizApp.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("BlazorQuizApp.Models.QuizAnswer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AnsweredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("QuizResultId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SelectedOptionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuizResultId");
+
+                    b.HasIndex("QuestionId", "SelectedOptionId");
+
+                    b.ToTable("QuizAnswers");
+                });
+
+            modelBuilder.Entity("BlazorQuizApp.Models.QuizOption", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("QuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("QuizOptions");
+                });
+
+            modelBuilder.Entity("BlazorQuizApp.Models.QuizQuestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("CorrectOptionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Difficulty")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("QuestionText")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("SelectedOptionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("QuizQuestions");
+                });
+
+            modelBuilder.Entity("BlazorQuizApp.Models.QuizResult", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CorrectAnswers")
+                        .HasColumnType("int");
+
+                    b.Property<TimeSpan>("Duration")
+                        .HasColumnType("time");
+
+                    b.Property<int>("TotalQuestions")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompletedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("QuizResults");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -220,6 +351,22 @@ namespace BlazorQuizApp.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("BlazorQuizApp.Models.QuizAnswer", b =>
+                {
+                    b.HasOne("BlazorQuizApp.Models.QuizResult", null)
+                        .WithMany("Answers")
+                        .HasForeignKey("QuizResultId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("BlazorQuizApp.Models.QuizOption", b =>
+                {
+                    b.HasOne("BlazorQuizApp.Models.QuizQuestion", null)
+                        .WithMany("Options")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -269,6 +416,16 @@ namespace BlazorQuizApp.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("BlazorQuizApp.Models.QuizQuestion", b =>
+                {
+                    b.Navigation("Options");
+                });
+
+            modelBuilder.Entity("BlazorQuizApp.Models.QuizResult", b =>
+                {
+                    b.Navigation("Answers");
                 });
 #pragma warning restore 612, 618
         }

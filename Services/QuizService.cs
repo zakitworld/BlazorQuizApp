@@ -110,8 +110,11 @@ namespace BlazorQuizApp.Services
             {
                 Id = _nextId++,
                 QuestionText = questionForm.QuestionText,
+                Category = questionForm.Category,
+                Difficulty = questionForm.Difficulty,
                 Options = new List<QuizOption>(),
-                CorrectOptionId = questionForm.CorrectOptionIndex + 1
+                CorrectOptionId = questionForm.CorrectOptionIndex + 1,
+                CreatedAt = DateTime.UtcNow
             };
 
             for (int i = 0; i < questionForm.OptionTexts.Count; i++)
@@ -145,7 +148,10 @@ namespace BlazorQuizApp.Services
             if (questionToUpdate != null)
             {
                 questionToUpdate.QuestionText = questionForm.QuestionText;
+                questionToUpdate.Category = questionForm.Category;
+                questionToUpdate.Difficulty = questionForm.Difficulty;
                 questionToUpdate.CorrectOptionId = questionForm.CorrectOptionIndex + 1;
+                questionToUpdate.UpdatedAt = DateTime.UtcNow;
                 questionToUpdate.Options.Clear();
 
                 for (int i = 0; i < questionForm.OptionTexts.Count; i++)
@@ -174,6 +180,8 @@ namespace BlazorQuizApp.Services
                 {
                     Id = 1,
                     QuestionText = "Which of the following statements is true regarding dependency injection?",
+                    Category = "ASP.NET Core",
+                    Difficulty = "Medium",
                     Options = new List<QuizOption>
                     {
                         new QuizOption { Id = 1, Text = "Dependency injection is a design pattern that allows you to loosely couple your app's dependencies." },
@@ -181,12 +189,15 @@ namespace BlazorQuizApp.Services
                         new QuizOption { Id = 3, Text = "ASP.NET Core's service container supports three service lifetimes: transient, scoped, and singleton." },
                         new QuizOption { Id = 4, Text = "All of the above." }
                     },
-                    CorrectOptionId = 4
+                    CorrectOptionId = 4,
+                    CreatedAt = DateTime.UtcNow
                 },
                 new QuizQuestion
                 {
                     Id = 2,
                     QuestionText = "What is the behavior of a service registered with the singleton service lifetime?",
+                    Category = "ASP.NET Core",
+                    Difficulty = "Easy",
                     Options = new List<QuizOption>
                     {
                         new QuizOption { Id = 1, Text = "A new instance of the service is created for each request." },
@@ -194,12 +205,15 @@ namespace BlazorQuizApp.Services
                         new QuizOption { Id = 3, Text = "A new instance of the service is created each time an instance is requested." },
                         new QuizOption { Id = 4, Text = "None of the above." }
                     },
-                    CorrectOptionId = 2
+                    CorrectOptionId = 2,
+                    CreatedAt = DateTime.UtcNow
                 },
                 new QuizQuestion
                 {
                     Id = 3,
                     QuestionText = "Which service lifetime is most appropriate for a stateless service?",
+                    Category = "ASP.NET Core",
+                    Difficulty = "Hard",
                     Options = new List<QuizOption>
                     {
                         new QuizOption { Id = 1, Text = "Transient" },
@@ -207,7 +221,8 @@ namespace BlazorQuizApp.Services
                         new QuizOption { Id = 3, Text = "Singleton" },
                         new QuizOption { Id = 4, Text = "It depends on the specific requirements" }
                     },
-                    CorrectOptionId = 1
+                    CorrectOptionId = 1,
+                    CreatedAt = DateTime.UtcNow
                 }
             };
         }

@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet ef migrations add:*)",
+      "Bash(dotnet ef database:*)",
+      "Bash(dotnet build)",
+      "Bash(dotnet ef migrations:*)",
+      "Bash(dotnet run:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c:*)",
+      "Bash(del \"bin\\Debug\\net9.0\\BlazorQuizApp.exe\")",
+      "Bash(rm:*)",
+      "Bash(dotnet clean:*)",
+      "Bash(powershell:*)"
+    ],
+    "deny": []
+  }
+}

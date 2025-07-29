@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using BlazorQuizApp.Configuration;
 using System;
 using System.Threading.Tasks;
 
@@ -14,6 +16,7 @@ namespace BlazorQuizApp.Data
             using var scope = services.CreateScope();
             var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var appSettings = scope.ServiceProvider.GetRequiredService<IOptions<AppSettings>>().Value;
 
             var adminRole = "Admin";
             try
@@ -24,7 +27,7 @@ namespace BlazorQuizApp.Data
                     logger.LogInformation("Admin role created.");
                 }
 
-                var adminEmail = config["AdminUser:Email"];
+                var adminEmail = appSettings.AdminUser.Email;
                 var adminUser = await userManager.FindByEmailAsync(adminEmail);
                 if (adminUser != null && adminUser.EmailConfirmed)
                 {

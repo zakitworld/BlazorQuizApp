@@ -1,0 +1,92 @@
+@page "/leaderboard"
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@inject IQuizBusinessService QuizBusinessService
+@inject INotificationService NotificationService
+
+<h1>Quiz Leaderboard</h1>
+
+<LoadingSpinner IsLoading="@isLoading" Message="Loading leaderboard..." />
+
+@if (!isLoading && leaderboard.Any())
+{
+    <div class="leaderboard-container">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-trophy-fill text-warning me-2"></i>
+                            Top Performers
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            @for (int i = 0; i < leaderboard.Count; i++)
+                            {
+                                var result = leaderboard[i];
+                                var rank = i + 1;
+                                var rankClass = rank switch
+                                {
+                                    1 => "text-warning",
+                                    2 => "text-secondary",
+                                    3 => "text-bronze",
+                                    _ => "text-muted"
+                                };
+
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge @rankClass me-3" style="min-width: 30px;">
+                                            @rank
+                                        </span>
+                                        <div>
+                                            <h6 class="mb-0">@(string.IsNullOrEmpty(result.UserName) ? "Anonymous" : result.UserName)</h6>
+                                            <small class="text-muted">
+                                                Completed @result.CompletedAt.ToString("MMM dd, yyyy 'at' HH:mm")
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="h5 mb-0 text-success">@result.ScorePercentage.ToString("F1")%</div>
+                                        <small class="text-muted">
+                                            @result.CorrectAnswers/@result.TotalQuestions correct
+                                        </small>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else if (!isLoading && !leaderboard.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        No quiz results yet. Be the first to take a quiz!
+    </div>
+}
+
+@code {
+    private List<QuizResult> leaderboard = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isLoading = true;
+            leaderboard = await QuizBusinessService.GetLeaderboardAsync(10);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.ShowError("Failed to load leaderboard. Please try again later.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+} 

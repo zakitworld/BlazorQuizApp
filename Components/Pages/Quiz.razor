@@ -1,113 +1,393 @@
 @page "/quiz"
 @using BlazorQuizApp.Models
 @using BlazorQuizApp.Services
-@inject QuizService QuizService
+@using BlazorQuizApp.Configuration
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Options
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject IQuizBusinessService QuizBusinessService
+@inject INotificationService NotificationService
 @inject NavigationManager NavigationManager
+@inject IOptions<AppSettings> AppSettings
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize]
 
 <h1>Quiz</h1>
 
-@if (QuizService.Questions.Count == 0)
-{
-    <div class="alert alert-info">
-        <p>There are no questions available in the quiz.</p>
-        <a href="/manage-questions" class="btn btn-primary mt-3">Add Questions</a>
-    </div>
-}
-else
+<LoadingSpinner IsLoading="@isLoading" Message="Loading quiz questions..." />
+
+@if (!isLoading && questions.Any())
 {
     <div class="quiz-container">
-        @if (!QuizService.IsQuizCompleted)
+        @if (!isQuizCompleted)
         {
-            var question = QuizService.GetCurrentQuestion();
-            var progress = (double)(QuizService.CurrentQuestionIndex + 1) / QuizService.Questions.Count * 100;
-
-            <div class="progress-bar-container">
-                <div class="progress-bar" style="width: @(progress)%;"></div>
-            </div>
-
-            <div class="question-card">
-                <h3>@question.QuestionText</h3>
-                <div class="options">
-                    @foreach (var option in question.Options)
-                    {
-                        <button class="option-button @(GetOptionClass(option))" 
-                                @onclick="() => SelectOption(option)" 
-                                disabled="@QuizService.IsAnswered">
-                            @option.Text
-                        </button>
-                    }
+            <div class="quiz-header mb-4">
+                <div class="row align-items-center g-3">
+                    <div class="col-12 col-lg-6">
+                        <div class="progress mb-2" style="height: 8px;">
+                            <div class="progress-bar bg-success" 
+                                 style="width: @(GetProgressPercentage())%" 
+                                 role="progressbar" 
+                                 aria-valuenow="@GetProgressPercentage()" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                        <small class="text-muted">Question @(currentQuestionIndex + 1) of @questions.Count</small>
+                    </div>
+                    <div class="col-12 col-lg-6 text-lg-end text-center">
+                        <QuizTimer DurationSeconds="@AppSettings.Value.Quiz.DefaultTimeLimit" 
+                                  OnTimeUp="HandleTimeUp" 
+                                  OnTimeChanged="HandleTimeChanged" />
+                    </div>
                 </div>
             </div>
 
-            @if (QuizService.IsAnswered)
+            @if (currentQuestion != null)
             {
-                <div class="feedback-section">
-                    @if (QuizService.IsCurrentAnswerCorrect)
-                    {
-                        <div class="alert alert-success">Correct!</div>
-                    }
-                    else
-                    {
-                        <div class="alert alert-danger">Incorrect. The correct answer is @QuizService.GetCurrentQuestion().Options.First(o => o.Id == QuizService.GetCurrentQuestion().CorrectOptionId).Text</div>
-                    }
-                    <button class="btn btn-primary" @onclick="NextQuestion">Next</button>
+                <div class="question-card card shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="question-meta">
+                                <span class="badge bg-primary me-2">@currentQuestion.Category</span>
+                                <span class="badge bg-secondary">@currentQuestion.Difficulty</span>
+                            </div>
+                        </div>
+                        <h3 class="card-title mb-4 fs-4">@currentQuestion.QuestionText</h3>
+                        <div class="options">
+                            @foreach (var option in currentQuestion.Options)
+                            {
+                                <button class="btn btn-outline-primary w-100 mb-3 p-3 text-start option-button @(GetOptionClass(option))" 
+                                        @onclick="() => SelectOption(option)" 
+                                        disabled="@isAnswered"
+                                        style="border-radius: 8px; transition: all 0.2s ease;">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-3 fw-bold">@(char.ConvertFromUtf32(65 + currentQuestion.Options.IndexOf(option)))</span>
+                                        <span>@option.Text</span>
+                                    </div>
+                                </button>
+                            }
+                        </div>
+                    </div>
                 </div>
+
+                @if (isAnswered)
+                {
+                    <div class="feedback-section mt-4">
+                        @if (isCurrentAnswerCorrect)
+                        {
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                                Correct! Well done!
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-danger">
+                                <i class="bi bi-x-circle-fill me-2"></i>
+                                Incorrect. The correct answer is: 
+                                <strong>@currentQuestion.Options.First(o => o.Id == currentQuestion.CorrectOptionId).Text</strong>
+                            </div>
+                        }
+                        <button class="btn btn-primary" @onclick="NextQuestion">
+                            @(currentQuestionIndex < questions.Count - 1 ? "Next Question" : "Finish Quiz")
+                        </button>
+                    </div>
+                }
             }
         }
         else
         {
             <div class="results-container">
-                <h2>Quiz Results</h2>
-                <div class="result-summary">
-                    <p>You answered @QuizService.Result.CorrectAnswers out of @QuizService.Result.TotalQuestions questions correctly.</p>
-                    <p>Your score: @QuizService.Result.ScorePercentage.ToString("0.##")%</p>
-                </div>
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h2 class="mb-0">
+                            <i class="bi bi-trophy-fill me-2"></i>
+                            Quiz Completed!
+                        </h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="result-summary text-center mb-4">
+                            <h3>Your Score: @quizResult?.ScorePercentage.ToString("F1")%</h3>
+                            <p class="lead">
+                                You answered <strong>@quizResult?.CorrectAnswers</strong> out of 
+                                <strong>@quizResult?.TotalQuestions</strong> questions correctly.
+                            </p>
+                            
+                            @if (quizResult?.ScorePercentage >= 80)
+                            {
+                                <div class="alert alert-success">
+                                    <i class="bi bi-star-fill me-2"></i>
+                                    Excellent! Great job!
+                                </div>
+                            }
+                            else if (quizResult?.ScorePercentage >= 60)
+                            {
+                                <div class="alert alert-warning">
+                                    <i class="bi bi-emoji-smile me-2"></i>
+                                    Good effort! Keep practicing!
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-info">
+                                    <i class="bi bi-lightbulb me-2"></i>
+                                    Keep studying and try again!
+                                </div>
+                            }
+                        </div>
 
-                <div class="action-buttons">
-                    <button class="btn btn-primary me-2" @onclick="RestartQuiz">Take Quiz Again</button>
-                    <a href="/" class="btn btn-secondary">Home</a>
+                        <div class="action-buttons text-center">
+                            <button class="btn btn-primary me-2" @onclick="RestartQuiz">
+                                <i class="bi bi-arrow-clockwise me-1"></i>
+                                Take Quiz Again
+                            </button>
+                            <a href="/leaderboard" class="btn btn-warning me-2">
+                                <i class="bi bi-trophy me-1"></i>
+                                View Leaderboard
+                            </a>
+                            <a href="/" class="btn btn-secondary">
+                                <i class="bi bi-house me-1"></i>
+                                Home
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         }
     </div>
 }
+else if (!isLoading && !questions.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        <p>There are no questions available in the quiz.</p>
+        <a href="/manage-questions" class="btn btn-primary mt-3">
+            <i class="bi bi-plus-circle me-1"></i>
+            Add Questions
+        </a>
+    </div>
+}
 
 @code {
-    protected override void OnInitialized()
+    private List<QuizQuestion> questions = new();
+    private int currentQuestionIndex = 0;
+    private bool isAnswered = false;
+    private bool isQuizCompleted = false;
+    private bool isLoading = true;
+    private QuizResult? quizResult;
+    private List<QuizAnswer> userAnswers = new();
+    private DateTime quizStartTime = DateTime.UtcNow;
+    private string currentUserId = string.Empty;
+    private string currentUserName = string.Empty;
+
+    private QuizQuestion? currentQuestion => 
+        questions.Count > 0 && currentQuestionIndex < questions.Count 
+            ? questions[currentQuestionIndex] 
+            : null;
+
+    private bool isCurrentAnswerCorrect => 
+        currentQuestion != null && 
+        userAnswers.Any(a => a.QuestionId == currentQuestion.Id && 
+                            a.SelectedOptionId == currentQuestion.CorrectOptionId);
+
+    protected override async Task OnInitializedAsync()
     {
-        QuizService.LoadQuestions();
+        try
+        {
+            isLoading = true;
+            
+            // Get current user
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+                currentUserName = authState.User.FindFirst(ClaimTypes.Email)?.Value ?? "Anonymous";
+            }
+            
+            questions = await QuizBusinessService.GetQuestionsAsync();
+            
+            if (AppSettings.Value.Quiz.RandomizeQuestions && questions.Any())
+            {
+                var random = new Random();
+                questions = questions.OrderBy(x => random.Next()).ToList();
+            }
+            
+            quizStartTime = DateTime.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            NotificationService.ShowError("Failed to load quiz questions. Please try again later.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     private void SelectOption(QuizOption option)
     {
-        QuizService.SelectOption(option);
+        if (currentQuestion == null || isAnswered) return;
+
+        var answer = new QuizAnswer
+        {
+            QuestionId = currentQuestion.Id,
+            SelectedOptionId = option.Id,
+            AnsweredAt = DateTime.UtcNow
+        };
+
+        // Update existing answer or add new one
+        var existingAnswer = userAnswers.FirstOrDefault(a => a.QuestionId == currentQuestion.Id);
+        if (existingAnswer != null)
+        {
+            existingAnswer.SelectedOptionId = option.Id;
+            existingAnswer.AnsweredAt = DateTime.UtcNow;
+        }
+        else
+        {
+            userAnswers.Add(answer);
+        }
+
+        isAnswered = true;
+        StateHasChanged();
     }
 
-    private void NextQuestion()
+    private async Task NextQuestion()
     {
-        QuizService.NextQuestion();
+        if (currentQuestionIndex < questions.Count - 1)
+        {
+            currentQuestionIndex++;
+            isAnswered = false;
+            StateHasChanged();
+        }
+        else
+        {
+            await CompleteQuiz();
+        }
+    }
+
+    private async Task CompleteQuiz()
+    {
+        try
+        {
+            var duration = DateTime.UtcNow - quizStartTime;
+            
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                NotificationService.ShowError("User not authenticated. Please login and try again.");
+                return;
+            }
+            
+            if (!userAnswers.Any())
+            {
+                // Create dummy answers for all questions if none exist
+                foreach (var question in questions)
+                {
+                    if (!userAnswers.Any(a => a.QuestionId == question.Id))
+                    {
+                        userAnswers.Add(new QuizAnswer 
+                        { 
+                            QuestionId = question.Id, 
+                            SelectedOptionId = -1, // No answer selected
+                            AnsweredAt = DateTime.UtcNow 
+                        });
+                    }
+                }
+            }
+            
+            try
+            {
+                quizResult = await QuizBusinessService.SubmitQuizAsync(userAnswers, currentUserId);
+                if (quizResult != null)
+                {
+                    quizResult.Duration = duration;
+                }
+            }
+            catch (Exception dbEx)
+            {
+                // Fallback: create result locally if database fails
+                Console.WriteLine($"Database error, creating local result: {dbEx.Message}");
+                
+                var correctAnswers = 0;
+                foreach (var answer in userAnswers)
+                {
+                    var question = questions.FirstOrDefault(q => q.Id == answer.QuestionId);
+                    if (question != null && answer.SelectedOptionId == question.CorrectOptionId)
+                    {
+                        correctAnswers++;
+                    }
+                }
+
+                quizResult = new QuizResult
+                {
+                    UserId = currentUserId,
+                    UserName = currentUserName,
+                    TotalQuestions = userAnswers.Count,
+                    CorrectAnswers = correctAnswers,
+                    CompletedAt = DateTime.UtcNow,
+                    Duration = duration,
+                    Answers = userAnswers
+                };
+            }
+            
+            isQuizCompleted = true;
+            StateHasChanged(); // Force UI update
+            
+            NotificationService.ShowSuccess($"Quiz completed! Your score: {quizResult?.ScorePercentage:F1}%");
+        }
+        catch (Exception ex)
+        {
+            NotificationService.ShowError($"Failed to complete quiz: {ex.Message}");
+            
+            // Still show results even if there was an error
+            isQuizCompleted = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleTimeUp()
+    {
+        NotificationService.ShowWarning("Time's up! Submitting your quiz...");
+        await CompleteQuiz();
+    }
+
+    private void HandleTimeChanged(int timeRemaining)
+    {
+        if (timeRemaining <= 30 && timeRemaining > 0)
+        {
+            NotificationService.ShowWarning($"Only {timeRemaining} seconds remaining!");
+        }
     }
 
     private void RestartQuiz()
     {
-        QuizService.RestartQuiz();
+        currentQuestionIndex = 0;
+        isAnswered = false;
+        isQuizCompleted = false;
+        userAnswers.Clear();
+        quizResult = null;
+        quizStartTime = DateTime.UtcNow;
+    }
+
+    private double GetProgressPercentage()
+    {
+        return questions.Count > 0 ? (double)(currentQuestionIndex + 1) / questions.Count * 100 : 0;
     }
 
     private string GetOptionClass(QuizOption option)
     {
-        if (!QuizService.IsAnswered)
+        if (!isAnswered || currentQuestion == null) return string.Empty;
+
+        if (option.Id == currentQuestion.CorrectOptionId)
         {
-            return string.Empty;
+            return "btn-success";
         }
 
-        if (option.Id == QuizService.GetCurrentQuestion().CorrectOptionId)
+        if (option.Id == userAnswers.FirstOrDefault(a => a.QuestionId == currentQuestion.Id)?.SelectedOptionId && 
+            !isCurrentAnswerCorrect)
         {
-            return "correct-answer";
-        }
-
-        if (option.Id == QuizService.SelectedOptionId && !QuizService.IsCurrentAnswerCorrect)
-        {
-            return "incorrect-answer";
+            return "btn-danger";
         }
 
         return string.Empty;

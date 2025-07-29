@@ -1,31 +1,69 @@
 @page "/question-details/{id:int}"
 @using BlazorQuizApp.Models
 @using BlazorQuizApp.Services
-@inject QuizService QuizService
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@inject IQuizBusinessService QuizBusinessService
+@inject INotificationService NotificationService
 @inject NavigationManager NavigationManager
 
 <h1>Question Details</h1>
 
-@if (question == null)
-{
-    <div class="alert alert-warning">Question not found.</div>
-}
-else
-{
-    <div class="details-card">
-        <h3>@question.QuestionText</h3>
-        <ul class="options-list">
-            @foreach (var option in question.Options)
-            {
-                <li class="@(option.Id == question.CorrectOptionId ? "correct-option" : "")">
-                    @option.Text
-                </li>
-            }
-        </ul>
-    </div>
+<LoadingSpinner IsLoading="@isLoading" Message="Loading question details..." />
 
-    <div class="action-buttons mt-4">
-        <a href="/manage-questions" class="btn btn-secondary">Back to List</a>
+@if (!isLoading && question == null)
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Question not found.
+    </div>
+    <a href="/manage-questions" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to Questions
+    </a>
+}
+else if (!isLoading && question != null)
+{
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-eye me-2"></i>
+                Question #@Id Details
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="question-content">
+                <h4 class="mb-3">@question.QuestionText</h4>
+                
+                <div class="options-list">
+                    <h6 class="mb-2">Options:</h6>
+                    <div class="list-group">
+                        @foreach (var option in question.Options)
+                        {
+                            <div class="list-group-item @(option.Id == question.CorrectOptionId ? "list-group-item-success" : "list-group-item-secondary")">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>@option.Text</span>
+                                    @if (option.Id == question.CorrectOptionId)
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Correct Answer
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons mt-4">
+                <a href="/edit-question/@question.Id" class="btn btn-warning me-2">
+                    <i class="bi bi-pencil me-1"></i>Edit Question
+                </a>
+                <a href="/manage-questions" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+        </div>
     </div>
 }
 
@@ -34,9 +72,32 @@ else
     public int Id { get; set; }
 
     private QuizQuestion? question;
+    private bool isLoading = true;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        question = QuizService.GetQuestionById(Id);
+        await LoadQuestion();
+    }
+
+    private async Task LoadQuestion()
+    {
+        try
+        {
+            isLoading = true;
+            question = await QuizBusinessService.GetQuestionByIdAsync(Id);
+            
+            if (question == null)
+            {
+                NotificationService.ShowWarning("Question not found.");
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.ShowError("Failed to load question details. Please try again later.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 }

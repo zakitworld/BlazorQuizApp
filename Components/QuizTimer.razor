@@ -1,0 +1,119 @@
+@using System.Timers
+@implements IDisposable
+
+<div class="quiz-timer @GetTimerClass()">
+    <div class="timer-display">
+        <i class="bi bi-clock me-2"></i>
+        <span class="timer-text">@FormatTime(TimeRemaining)</span>
+    </div>
+    @if (ShowProgressBar)
+    {
+        <div class="progress mt-2" style="height: 4px;">
+            <div class="progress-bar @GetProgressBarClass()" 
+                 style="width: @(GetProgressPercentage())%" 
+                 role="progressbar" 
+                 aria-valuenow="@GetProgressPercentage()" 
+                 aria-valuemin="0" 
+                 aria-valuemax="100">
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int DurationSeconds { get; set; } = 300; // 5 minutes default
+
+    [Parameter]
+    public bool ShowProgressBar { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnTimeUp { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnTimeChanged { get; set; }
+
+    private Timer? _timer;
+    private int _timeRemaining;
+    private bool _isDisposed;
+
+    public int TimeRemaining => _timeRemaining;
+
+    protected override void OnInitialized()
+    {
+        _timeRemaining = DurationSeconds;
+        StartTimer();
+    }
+
+    private void StartTimer()
+    {
+        _timer = new Timer(1000); // Update every second
+        _timer.Elapsed += OnTimerElapsed;
+        _timer.AutoReset = true;
+        _timer.Start();
+    }
+
+    private async void OnTimerElapsed(object? sender, ElapsedEventArgs e)
+    {
+        if (_isDisposed) return;
+
+        _timeRemaining--;
+
+        await InvokeAsync(async () =>
+        {
+            await OnTimeChanged.InvokeAsync(_timeRemaining);
+            StateHasChanged();
+
+            if (_timeRemaining <= 0)
+            {
+                await OnTimeUp.InvokeAsync();
+                StopTimer();
+            }
+        });
+    }
+
+    public void StopTimer()
+    {
+        _timer?.Stop();
+        _timer?.Dispose();
+        _timer = null;
+    }
+
+    public void ResetTimer()
+    {
+        _timeRemaining = DurationSeconds;
+        StateHasChanged();
+    }
+
+    private string FormatTime(int seconds)
+    {
+        var minutes = seconds / 60;
+        var remainingSeconds = seconds % 60;
+        return $"{minutes:D2}:{remainingSeconds:D2}";
+    }
+
+    private string GetTimerClass() => _timeRemaining switch
+    {
+        <= 30 => "text-danger",
+        <= 60 => "text-warning",
+        _ => "text-primary"
+    };
+
+    private string GetProgressBarClass() => _timeRemaining switch
+    {
+        <= 30 => "bg-danger",
+        <= 60 => "bg-warning",
+        _ => "bg-primary"
+    };
+
+    private double GetProgressPercentage()
+    {
+        return Math.Max(0, (double)_timeRemaining / DurationSeconds * 100);
+    }
+
+    public void Dispose()
+    {
+        _isDisposed = true;
+        StopTimer();
+    }
+} 

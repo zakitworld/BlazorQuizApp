@@ -1,0 +1,250 @@
+@page "/statistics"
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@attribute [Authorize]
+@inject IQuizBusinessService QuizBusinessService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject INotificationService NotificationService
+
+<PageTitle>Quiz Statistics</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-6">
+                <i class="bi bi-graph-up text-primary me-3"></i>
+                Quiz Statistics
+            </h1>
+        </div>
+    </div>
+
+    <LoadingSpinner IsLoading="@isLoading" Message="Loading statistics..." />
+
+    @if (!isLoading)
+    {
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-trophy-fill display-4 mb-2"></i>
+                        <h3 class="card-title">@userResults.Count</h3>
+                        <p class="card-text">Quizzes Taken</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-percent display-4 mb-2"></i>
+                        <h3 class="card-title">@(averageScore.ToString("F1"))%</h3>
+                        <p class="card-text">Average Score</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <i class="bi bi-star-fill display-4 mb-2"></i>
+                        <h3 class="card-title">@(bestScore.ToString("F1"))%</h3>
+                        <p class="card-text">Best Score</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body text-center">
+                        <i class="bi bi-clock-fill display-4 mb-2"></i>
+                        <h3 class="card-title">@totalTimeSpent</h3>
+                        <p class="card-text">Time Spent</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (userResults.Any())
+        {
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-graph-up me-2"></i>
+                                Performance Over Time
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="height: 300px;">
+                                <canvas id="performanceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-pie-chart me-2"></i>
+                                Score Distribution
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span>Excellent (80%+)</span>
+                                    <span class="badge bg-success">@excellentCount</span>
+                                </div>
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div class="progress-bar bg-success" style="width: @(excellentPercentage)%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span>Good (60-79%)</span>
+                                    <span class="badge bg-warning">@goodCount</span>
+                                </div>
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div class="progress-bar bg-warning" style="width: @(goodPercentage)%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span>Needs Improvement (&lt;60%)</span>
+                                    <span class="badge bg-danger">@poorCount</span>
+                                </div>
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div class="progress-bar bg-danger" style="width: @(poorPercentage)%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-list me-2"></i>
+                                Recent Quiz Results
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Score</th>
+                                            <th>Correct Answers</th>
+                                            <th>Total Questions</th>
+                                            <th>Duration</th>
+                                            <th>Performance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var result in userResults.OrderByDescending(r => r.CompletedAt).Take(10))
+                                        {
+                                            <tr>
+                                                <td>@result.CompletedAt.ToString("MMM dd, yyyy HH:mm")</td>
+                                                <td>
+                                                    <span class="badge @GetScoreBadgeClass(result.ScorePercentage)">
+                                                        @result.ScorePercentage.ToString("F1")%
+                                                    </span>
+                                                </td>
+                                                <td>@result.CorrectAnswers</td>
+                                                <td>@result.TotalQuestions</td>
+                                                <td>@result.Duration.ToString(@"mm\:ss")</td>
+                                                <td>@GetPerformanceLabel(result.ScorePercentage)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-clipboard-data text-muted" style="font-size: 4rem;"></i>
+                            <h4 class="mt-3 text-muted">No Quiz Data Yet</h4>
+                            <p class="text-muted">Take some quizzes to see your statistics here!</p>
+                            <a href="/quiz" class="btn btn-primary">
+                                <i class="bi bi-play-circle me-2"></i>
+                                Start Your First Quiz
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<QuizResult> userResults = new();
+    private bool isLoading = true;
+    private string currentUserId = string.Empty;
+
+    private double averageScore => userResults.Any() ? userResults.Average(r => r.ScorePercentage) : 0;
+    private double bestScore => userResults.Any() ? userResults.Max(r => r.ScorePercentage) : 0;
+    private string totalTimeSpent => userResults.Any() 
+        ? TimeSpan.FromTicks(userResults.Sum(r => r.Duration.Ticks)).ToString(@"hh\:mm\:ss")
+        : "00:00:00";
+
+    private int excellentCount => userResults.Count(r => r.ScorePercentage >= 80);
+    private int goodCount => userResults.Count(r => r.ScorePercentage >= 60 && r.ScorePercentage < 80);
+    private int poorCount => userResults.Count(r => r.ScorePercentage < 60);
+
+    private double excellentPercentage => userResults.Any() ? (double)excellentCount / userResults.Count * 100 : 0;
+    private double goodPercentage => userResults.Any() ? (double)goodCount / userResults.Count * 100 : 0;
+    private double poorPercentage => userResults.Any() ? (double)poorCount / userResults.Count * 100 : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isLoading = true;
+            
+            // Get current user
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+                userResults = await QuizBusinessService.GetUserQuizHistoryAsync(currentUserId);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.ShowError("Failed to load statistics. Please try again later.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetScoreBadgeClass(double score)
+    {
+        return score >= 80 ? "bg-success" :
+               score >= 60 ? "bg-warning" :
+               "bg-danger";
+    }
+
+    private string GetPerformanceLabel(double score)
+    {
+        return score >= 80 ? "Excellent" :
+               score >= 60 ? "Good" :
+               "Need Improvement";
+    }
+}

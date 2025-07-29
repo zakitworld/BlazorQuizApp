@@ -1,0 +1,64 @@
+@using BlazorQuizApp.Services
+@inject INotificationService NotificationService
+@implements IDisposable
+
+<div class="notification-container position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+    @foreach (var notification in NotificationService.Notifications)
+    {
+        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header @GetToastHeaderClass(notification.Type)">
+                <i class="bi @GetIconClass(notification.Type) me-2"></i>
+                <strong class="me-auto">@GetTitle(notification.Type)</strong>
+                <small class="text-muted">@notification.CreatedAt.ToString("HH:mm")</small>
+                <button type="button" class="btn-close" @onclick="() => NotificationService.RemoveNotification(notification.Id)"></button>
+            </div>
+            <div class="toast-body">
+                @notification.Message
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        NotificationService.OnNotificationsChanged += OnNotificationsChanged;
+    }
+
+    private void OnNotificationsChanged(List<Notification> notifications)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetToastHeaderClass(NotificationType type) => type switch
+    {
+        NotificationType.Success => "bg-success text-white",
+        NotificationType.Error => "bg-danger text-white",
+        NotificationType.Warning => "bg-warning text-dark",
+        NotificationType.Info => "bg-info text-white",
+        _ => "bg-secondary text-white"
+    };
+
+    private string GetIconClass(NotificationType type) => type switch
+    {
+        NotificationType.Success => "bi-check-circle-fill",
+        NotificationType.Error => "bi-exclamation-triangle-fill",
+        NotificationType.Warning => "bi-exclamation-triangle-fill",
+        NotificationType.Info => "bi-info-circle-fill",
+        _ => "bi-bell-fill"
+    };
+
+    private string GetTitle(NotificationType type) => type switch
+    {
+        NotificationType.Success => "Success",
+        NotificationType.Error => "Error",
+        NotificationType.Warning => "Warning",
+        NotificationType.Info => "Information",
+        _ => "Notification"
+    };
+
+    public void Dispose()
+    {
+        NotificationService.OnNotificationsChanged -= OnNotificationsChanged;
+    }
+} 

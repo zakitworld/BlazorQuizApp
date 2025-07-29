@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BlazorQuizApp.Migrations
 {
     /// <inheritdoc />
-    public partial class CreateIdentitySchema : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -48,6 +48,43 @@ namespace BlazorQuizApp.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "QuizQuestions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    QuestionText = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    Category = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Difficulty = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    SelectedOptionId = table.Column<int>(type: "int", nullable: false),
+                    CorrectOptionId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_QuizQuestions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "QuizResults",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
+                    UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    TotalQuestions = table.Column<int>(type: "int", nullable: false),
+                    CorrectAnswers = table.Column<int>(type: "int", nullable: false),
+                    CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Duration = table.Column<TimeSpan>(type: "time", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_QuizResults", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -156,6 +193,48 @@ namespace BlazorQuizApp.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "QuizOptions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Text = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    QuestionId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_QuizOptions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_QuizOptions_QuizQuestions_QuestionId",
+                        column: x => x.QuestionId,
+                        principalTable: "QuizQuestions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "QuizAnswers",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    QuestionId = table.Column<int>(type: "int", nullable: false),
+                    SelectedOptionId = table.Column<int>(type: "int", nullable: false),
+                    AnsweredAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    QuizResultId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_QuizAnswers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_QuizAnswers_QuizResults_QuizResultId",
+                        column: x => x.QuizResultId,
+                        principalTable: "QuizResults",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
@@ -194,6 +273,31 @@ namespace BlazorQuizApp.Migrations
                 column: "NormalizedUserName",
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_QuizAnswers_QuestionId_SelectedOptionId",
+                table: "QuizAnswers",
+                columns: new[] { "QuestionId", "SelectedOptionId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_QuizAnswers_QuizResultId",
+                table: "QuizAnswers",
+                column: "QuizResultId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_QuizOptions_QuestionId",
+                table: "QuizOptions",
+                column: "QuestionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_QuizResults_CompletedAt",
+                table: "QuizResults",
+                column: "CompletedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_QuizResults_UserId",
+                table: "QuizResults",
+                column: "UserId");
         }
 
         /// <inheritdoc />
@@ -215,10 +319,22 @@ namespace BlazorQuizApp.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "QuizAnswers");
+
+            migrationBuilder.DropTable(
+                name: "QuizOptions");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "QuizResults");
+
+            migrationBuilder.DropTable(
+                name: "QuizQuestions");
         }
     }
 }

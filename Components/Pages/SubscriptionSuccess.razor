@@ -1,0 +1,50 @@
+@page "/subscription/success"
+@using BlazorQuizApp.Services
+@inject INotificationService NotificationService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Subscription Successful - Quiz App</PageTitle>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg">
+                <div class="card-body text-center p-5">
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+                    </div>
+
+                    <h1 class="display-5 mb-3">Welcome to Premium!</h1>
+
+                    <p class="lead text-muted mb-4">
+                        Your subscription has been activated successfully. You now have access to all premium features!
+                    </p>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Your subscription will be automatically renewed monthly. You can manage or cancel your
+                        subscription anytime from your account settings.
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="/quiz" class="btn btn-primary btn-lg">
+                            <i class="bi bi-play-circle me-2"></i>
+                            Start Taking Quizzes
+                        </a>
+                        <a href="/" class="btn btn-outline-secondary">
+                            <i class="bi bi-house me-2"></i>
+                            Go to Homepage
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        NotificationService.ShowSuccess("Subscription activated successfully!");
+    }
+}

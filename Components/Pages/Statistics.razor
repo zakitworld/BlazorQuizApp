@@ -4,10 +4,12 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using Microsoft.JSInterop
 @attribute [Authorize]
 @inject IQuizBusinessService QuizBusinessService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject INotificationService NotificationService
+@inject IJSRuntime JS
 
 <PageTitle>Quiz Statistics</PageTitle>
 
@@ -195,6 +197,7 @@
     private List<QuizResult> userResults = new();
     private bool isLoading = true;
     private string currentUserId = string.Empty;
+    private bool chartRendered = false;
 
     private double averageScore => userResults.Any() ? userResults.Average(r => r.ScorePercentage) : 0;
     private double bestScore => userResults.Any() ? userResults.Max(r => r.ScorePercentage) : 0;
@@ -231,6 +234,27 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!isLoading && userResults.Any() && !chartRendered)
+        {
+            try
+            {
+                var orderedResults = userResults.OrderBy(r => r.CompletedAt).ToList();
+                var labels = orderedResults.Select(r => r.CompletedAt.ToString("MMM dd")).ToArray();
+                var scores = orderedResults.Select(r => r.ScorePercentage).ToArray();
+                
+                await JS.InvokeVoidAsync("renderPerformanceChart", labels, scores);
+                chartRendered = true;
+            }
+            catch (Exception ex)
+            {
+                // Chart.js might not be loaded, but don't break the page
+                Console.WriteLine($"Failed to render chart: {ex.Message}");
+            }
         }
     }
 

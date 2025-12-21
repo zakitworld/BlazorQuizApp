@@ -23,13 +23,17 @@ namespace BlazorQuizApp.Services
         {
             try
             {
-                _logger.LogInformation("Retrieving quiz questions");
-                return await Task.FromResult(_quizService.Questions);
+                _logger.LogInformation("Retrieving quiz questions from database");
+                return await _context.QuizQuestions
+                    .Include(q => q.Options)
+                    .OrderBy(q => q.CreatedAt)
+                    .ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving quiz questions");
-                throw;
+                _logger.LogError(ex, "Error retrieving quiz questions from database, falling back to JSON file");
+                // Fallback to JSON file if database fails
+                return await Task.FromResult(_quizService.Questions);
             }
         }
 
@@ -38,12 +42,15 @@ namespace BlazorQuizApp.Services
             try
             {
                 _logger.LogInformation("Retrieving question with ID: {QuestionId}", id);
-                return await Task.FromResult(_quizService.GetQuestionById(id));
+                return await _context.QuizQuestions
+                    .Include(q => q.Options)
+                    .FirstOrDefaultAsync(q => q.Id == id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving question with ID: {QuestionId}", id);
-                throw;
+                _logger.LogError(ex, "Error retrieving question with ID: {QuestionId} from database, falling back to JSON file", id);
+                // Fallback to JSON file if database fails
+                return await Task.FromResult(_quizService.GetQuestionById(id));
             }
         }
 
@@ -57,7 +64,35 @@ namespace BlazorQuizApp.Services
                 }
 
                 _logger.LogInformation("Adding new question: {QuestionText}", questionForm.QuestionText);
-                _quizService.AddQuestion(questionForm);
+                
+                var question = new QuizQuestion
+                {
+                    QuestionText = questionForm.QuestionText,
+                    Category = questionForm.Category,
+                    Difficulty = questionForm.Difficulty,
+                    CorrectOptionId = 0, // Temporary value, will be set after saving
+                    CreatedAt = DateTime.UtcNow,
+                    Options = new List<QuizOption>()
+                };
+
+                for (int i = 0; i < questionForm.OptionTexts.Count; i++)
+                {
+                    if (!string.IsNullOrWhiteSpace(questionForm.OptionTexts[i]))
+                    {
+                        question.Options.Add(new QuizOption { Text = questionForm.OptionTexts[i] });
+                    }
+                }
+
+                _context.QuizQuestions.Add(question);
+                await _context.SaveChangesAsync();
+
+                // Now set the correct option ID using the actual database ID
+                if (questionForm.CorrectOptionIndex >= 0 && questionForm.CorrectOptionIndex < question.Options.Count)
+                {
+                    question.CorrectOptionId = question.Options[questionForm.CorrectOptionIndex].Id;
+                    await _context.SaveChangesAsync();
+                }
+                
                 return true;
             }
             catch (Exception ex)
@@ -77,7 +112,44 @@ namespace BlazorQuizApp.Services
                 }
 
                 _logger.LogInformation("Updating question with ID: {QuestionId}", id);
-                _quizService.UpdateQuestion(id, questionForm);
+                
+                var question = await _context.QuizQuestions
+                    .Include(q => q.Options)
+                    .FirstOrDefaultAsync(q => q.Id == id);
+                
+                if (question == null)
+                {
+                    _logger.LogWarning("Question with ID {QuestionId} not found", id);
+                    return false;
+                }
+
+                question.QuestionText = questionForm.QuestionText;
+                question.Category = questionForm.Category;
+                question.Difficulty = questionForm.Difficulty;
+                question.CorrectOptionId = 0; // Temporary value, will be set after saving
+                question.UpdatedAt = DateTime.UtcNow;
+
+                // Remove existing options
+                _context.QuizOptions.RemoveRange(question.Options);
+                question.Options.Clear();
+
+                // Add new options
+                for (int i = 0; i < questionForm.OptionTexts.Count; i++)
+                {
+                    if (!string.IsNullOrWhiteSpace(questionForm.OptionTexts[i]))
+                    {
+                        question.Options.Add(new QuizOption { Text = questionForm.OptionTexts[i] });
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Now set the correct option ID using the actual database ID
+                if (questionForm.CorrectOptionIndex >= 0 && questionForm.CorrectOptionIndex < question.Options.Count)
+                {
+                    question.CorrectOptionId = question.Options[questionForm.CorrectOptionIndex].Id;
+                    await _context.SaveChangesAsync();
+                }
                 return true;
             }
             catch (Exception ex)
@@ -92,7 +164,19 @@ namespace BlazorQuizApp.Services
             try
             {
                 _logger.LogInformation("Deleting question with ID: {QuestionId}", id);
-                _quizService.DeleteQuestion(id);
+                
+                var question = await _context.QuizQuestions
+                    .Include(q => q.Options)
+                    .FirstOrDefaultAsync(q => q.Id == id);
+                
+                if (question == null)
+                {
+                    _logger.LogWarning("Question with ID {QuestionId} not found", id);
+                    return false;
+                }
+
+                _context.QuizQuestions.Remove(question);
+                await _context.SaveChangesAsync();
                 return true;
             }
             catch (Exception ex)
@@ -111,7 +195,9 @@ namespace BlazorQuizApp.Services
                     throw new ValidationException("Invalid quiz submission");
                 }
 
-                var questions = await GetQuestionsAsync();
+                var questions = await _context.QuizQuestions
+                    .Include(q => q.Options)
+                    .ToListAsync();
                 var correctAnswers = 0;
 
                 foreach (var answer in answers)
@@ -127,17 +213,28 @@ namespace BlazorQuizApp.Services
                 var user = await _context.Users.FindAsync(userId);
                 var userName = user?.Email ?? "Anonymous";
 
+                // Save answers first
+                _context.QuizAnswers.AddRange(answers);
+                await _context.SaveChangesAsync();
+
                 var result = new QuizResult
                 {
                     UserId = userId,
                     UserName = userName,
                     TotalQuestions = answers.Count,
                     CorrectAnswers = correctAnswers,
-                    Answers = answers,
                     CompletedAt = DateTime.UtcNow
                 };
 
                 _context.QuizResults.Add(result);
+                await _context.SaveChangesAsync();
+
+                // Link answers to the quiz result
+                foreach (var answer in answers)
+                {
+                    answer.QuizResultId = result.Id;
+                }
+                _context.QuizAnswers.UpdateRange(answers);
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Quiz submitted for user {UserId} with score {Score}%", 
@@ -175,11 +272,13 @@ namespace BlazorQuizApp.Services
             try
             {
                 _logger.LogInformation("Retrieving leaderboard with top {TopCount} results", topCount);
-                return await _context.QuizResults
-                    .OrderByDescending(r => r.ScorePercentage)
+                var results = await _context.QuizResults
+                    .OrderByDescending(r => (double)r.CorrectAnswers / r.TotalQuestions)
                     .ThenBy(r => r.CompletedAt)
                     .Take(topCount)
                     .ToListAsync();
+                
+                return results;
             }
             catch (Exception ex)
             {
@@ -198,7 +297,9 @@ namespace BlazorQuizApp.Services
                     return false;
                 }
 
-                var questions = await GetQuestionsAsync();
+                var questions = await _context.QuizQuestions
+                    .Include(q => q.Options)
+                    .ToListAsync();
                 var questionIds = questions.Select(q => q.Id).ToHashSet();
 
                 foreach (var answer in answers)

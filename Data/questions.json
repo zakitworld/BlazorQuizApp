@@ -2,10 +2,12 @@
   {
     "Id": 1,
     "QuestionText": "Which of the following statements is true regarding dependency injection?",
+    "Category": "ASP.NET Core",
+    "Difficulty": "Medium",
     "Options": [
       {
         "Id": 1,
-        "Text": "Dependency injection is a design pattern that allows you to loosely couple your app\u0027s dependencies."
+        "Text": "Dependency injection is a design pattern that allows you to loosely couple your app's dependencies."
       },
       {
         "Id": 2,
@@ -13,7 +15,7 @@
       },
       {
         "Id": 3,
-        "Text": "ASP.NET Core\u0027s service container supports three service lifetimes: transient, scoped, and singleton."
+        "Text": "ASP.NET Core's service container supports three service lifetimes: transient, scoped, and singleton."
       },
       {
         "Id": 4,
@@ -21,11 +23,41 @@
       }
     ],
     "SelectedOptionId": -1,
-    "CorrectOptionId": 4
+    "CorrectOptionId": 4,
+    "CreatedAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "Id": 2,
+    "QuestionText": "What is the behavior of a service registered with the singleton service lifetime?",
+    "Category": "ASP.NET Core",
+    "Difficulty": "Easy",
+    "Options": [
+      {
+        "Id": 1,
+        "Text": "A new instance of the service is created for each request."
+      },
+      {
+        "Id": 2,
+        "Text": "A single instance of the service is created for the lifetime of the app."
+      },
+      {
+        "Id": 3,
+        "Text": "A new instance of the service is created each time an instance is requested."
+      },
+      {
+        "Id": 4,
+        "Text": "None of the above."
+      }
+    ],
+    "SelectedOptionId": -1,
+    "CorrectOptionId": 2,
+    "CreatedAt": "2024-01-01T00:00:00Z"
   },
   {
     "Id": 3,
     "QuestionText": "Which service lifetime is most appropriate for a stateless service?",
+    "Category": "ASP.NET Core",
+    "Difficulty": "Hard",
     "Options": [
       {
         "Id": 1,
@@ -45,6 +77,196 @@
       }
     ],
     "SelectedOptionId": -1,
-    "CorrectOptionId": 1
+    "CorrectOptionId": 1,
+    "CreatedAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "Id": 4,
+    "QuestionText": "What is Blazor?",
+    "Category": "Blazor",
+    "Difficulty": "Easy",
+    "Options": [
+      {
+        "Id": 1,
+        "Text": "A JavaScript framework"
+      },
+      {
+        "Id": 2,
+        "Text": "A .NET framework for building interactive web UIs using C#"
+      },
+      {
+        "Id": 3,
+        "Text": "A database management system"
+      },
+      {
+        "Id": 4,
+        "Text": "A cloud computing platform"
+      }
+    ],
+    "SelectedOptionId": -1,
+    "CorrectOptionId": 2,
+    "CreatedAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "Id": 5,
+    "QuestionText": "Which of the following is NOT a Blazor hosting model?",
+    "Category": "Blazor",
+    "Difficulty": "Medium",
+    "Options": [
+      {
+        "Id": 1,
+        "Text": "Blazor Server"
+      },
+      {
+        "Id": 2,
+        "Text": "Blazor WebAssembly"
+      },
+      {
+        "Id": 3,
+        "Text": "Blazor Desktop"
+      },
+      {
+        "Id": 4,
+        "Text": "Blazor Mobile"
+      }
+    ],
+    "SelectedOptionId": -1,
+    "CorrectOptionId": 4,
+    "CreatedAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "Id": 6,
+    "QuestionText": "What is the main advantage of Blazor Server?",
+    "Category": "Blazor",
+    "Difficulty": "Medium",
+    "Options": [
+      {
+        "Id": 1,
+        "Text": "It runs entirely in the browser"
+      },
+      {
+        "Id": 2,
+        "Text": "It has smaller initial download size"
+      },
+      {
+        "Id": 3,
+        "Text": "It works offline"
+      },
+      {
+        "Id": 4,
+        "Text": "It has full access to server resources"
+      }
+    ],
+    "SelectedOptionId": -1,
+    "CorrectOptionId": 2,
+    "CreatedAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "Id": 7,
+    "QuestionText": "What is Entity Framework Core?",
+    "Category": "Entity Framework",
+    "Difficulty": "Easy",
+    "Options": [
+      {
+        "Id": 1,
+        "Text": "A web framework"
+      },
+      {
+        "Id": 2,
+        "Text": "An object-relational mapping (ORM) framework"
+      },
+      {
+        "Id": 3,
+        "Text": "A testing framework"
+      },
+      {
+        "Id": 4,
+        "Text": "A logging framework"
+      }
+    ],
+    "SelectedOptionId": -1,
+    "CorrectOptionId": 2,
+    "CreatedAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "Id": 8,
+    "QuestionText": "Which method is used to save changes to the database in Entity Framework Core?",
+    "Category": "Entity Framework",
+    "Difficulty": "Easy",
+    "Options": [
+      {
+        "Id": 1,
+        "Text": "SaveChanges()"
+      },
+      {
+        "Id": 2,
+        "Text": "Update()"
+      },
+      {
+        "Id": 3,
+        "Text": "Commit()"
+      },
+      {
+        "Id": 4,
+        "Text": "Persist()"
+      }
+    ],
+    "SelectedOptionId": -1,
+    "CorrectOptionId": 1,
+    "CreatedAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "Id": 9,
+    "QuestionText": "What is the purpose of DbContext in Entity Framework Core?",
+    "Category": "Entity Framework",
+    "Difficulty": "Medium",
+    "Options": [
+      {
+        "Id": 1,
+        "Text": "To define database connection strings"
+      },
+      {
+        "Id": 2,
+        "Text": "To represent a session with the database and manage entities"
+      },
+      {
+        "Id": 3,
+        "Text": "To create database migrations"
+      },
+      {
+        "Id": 4,
+        "Text": "To configure authentication"
+      }
+    ],
+    "SelectedOptionId": -1,
+    "CorrectOptionId": 2,
+    "CreatedAt": "2024-01-01T00:00:00Z"
+  },
+  {
+    "Id": 10,
+    "QuestionText": "Which of the following is a valid C# access modifier?",
+    "Category": "C#",
+    "Difficulty": "Easy",
+    "Options": [
+      {
+        "Id": 1,
+        "Text": "public"
+      },
+      {
+        "Id": 2,
+        "Text": "private"
+      },
+      {
+        "Id": 3,
+        "Text": "protected"
+      },
+      {
+        "Id": 4,
+        "Text": "All of the above"
+      }
+    ],
+    "SelectedOptionId": -1,
+    "CorrectOptionId": 4,
+    "CreatedAt": "2024-01-01T00:00:00Z"
   }
 ]

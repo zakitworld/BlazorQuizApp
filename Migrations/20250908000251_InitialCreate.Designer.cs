@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BlazorQuizApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250729172845_InitialCreate")]
+    [Migration("20250908000251_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

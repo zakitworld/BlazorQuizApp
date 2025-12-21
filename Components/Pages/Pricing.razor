@@ -1,0 +1,193 @@
+@page "/pricing"
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject IStripePaymentService StripeService
+@inject ISubscriptionService SubscriptionService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject INotificationService NotificationService
+
+<PageTitle>Pricing - Quiz App</PageTitle>
+
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h1 class="display-4 mb-3">Choose Your Plan</h1>
+        <p class="lead text-muted">Select the perfect plan for your quiz journey</p>
+    </div>
+
+    <div class="row g-4">
+        @foreach (var tier in Enum.GetValues<SubscriptionTier>())
+        {
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 @(tier == SubscriptionTier.Premium ? "border-primary shadow-lg" : "")">
+                    @if (tier == SubscriptionTier.Premium)
+                    {
+                                <div class="card-header bg-primary text-white text-center">
+                                    <strong>MOST POPULAR</strong>
+                                </div>
+                    }
+                        <div class="card-body d-flex flex-column">
+                            <h3 class="card-title text-center">@tier.GetDisplayName()</h3>
+                            <div class="text-center mb-4">
+                                <span class="display-4 fw-bold">$@tier.GetMonthlyPrice().ToString("F2")</span>
+                                <span class="text-muted">/month</span>
+                            </div>
+
+                            <ul class="list-unstyled mb-4 flex-grow-1">
+                            @foreach (var feature in tier.GetFeatures())
+                            {
+                                        <li class="mb-2">
+                                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    @feature
+                                        </li>
+                            }
+                            </ul>
+
+                        @if (currentTier == tier)
+                        {
+                                    <button class="btn btn-secondary w-100" disabled>
+                                        <i class="bi bi-check-circle me-1"></i>
+                                        Current Plan
+                                    </button>
+                        }
+                        else if (tier == SubscriptionTier.Free)
+                        {
+                                    <button class="btn btn-outline-secondary w-100" disabled>
+                                        Free Forever
+                                    </button>
+                        }
+                        else if (tier == SubscriptionTier.Enterprise)
+                        {
+                                    <a href="mailto:support@quizapp.com" class="btn btn-outline-primary w-100">
+                                        <i class="bi bi-envelope me-1"></i>
+                                        Contact Sales
+                                    </a>
+                        }
+                        else
+                        {
+                                    <button class="btn @(tier == SubscriptionTier.Premium ? "btn-primary" : "btn-outline-primary") w-100" 
+                            @onclick="() => HandleSubscribe(tier)"
+                                            disabled="@isProcessing">
+                                @if (isProcessing && selectedTier == tier)
+                                {
+                                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                        <i class="bi bi-arrow-right-circle me-1"></i>
+                                @(currentTier < tier ? "Upgrade" : "Downgrade")
+                                    </button>
+                        }
+                        </div>
+                    </div>
+                </div>
+        }
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title mb-4">
+                        <i class="bi bi-question-circle me-2"></i>
+                        Frequently Asked Questions
+                    </h4>
+
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    Can I cancel anytime?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Yes! You can cancel your subscription at any time. You'll continue to have access until the end of your billing period.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    What payment methods do you accept?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    We accept all major credit cards (Visa, MasterCard, American Express) through our secure Stripe payment processor.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    Can I upgrade or downgrade my plan?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Absolutely! You can upgrade or downgrade your plan at any time. Changes will be prorated based on your billing cycle.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private SubscriptionTier currentTier = SubscriptionTier.Free;
+    private SubscriptionTier? selectedTier;
+    private bool isProcessing = false;
+    private string currentUserId = string.Empty;
+    private string currentUserEmail = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+            currentUserEmail = authState.User.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty;
+
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                currentTier = await SubscriptionService.GetUserTierAsync(currentUserId);
+            }
+        }
+    }
+
+    private async Task HandleSubscribe(SubscriptionTier tier)
+    {
+        if (string.IsNullOrEmpty(currentUserId))
+        {
+            NotificationService.ShowWarning("Please log in to subscribe");
+            NavigationManager.NavigateTo("/Account/Login");
+            return;
+        }
+
+        try
+        {
+            isProcessing = true;
+            selectedTier = tier;
+            StateHasChanged();
+
+            var checkoutUrl = await StripeService.CreateCheckoutSessionAsync(currentUserId, currentUserEmail, tier);
+            NavigationManager.NavigateTo(checkoutUrl, true);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.ShowError($"Failed to start checkout: {ex.Message}");
+        }
+        finally
+        {
+            isProcessing = false;
+            selectedTier = null;
+            StateHasChanged();
+        }
+    }
+}

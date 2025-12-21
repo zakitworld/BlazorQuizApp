@@ -10,6 +10,9 @@ namespace BlazorQuizApp.Data
         public DbSet<QuizOption> QuizOptions { get; set; }
         public DbSet<QuizResult> QuizResults { get; set; }
         public DbSet<QuizAnswer> QuizAnswers { get; set; }
+        public DbSet<Subscription> Subscriptions { get; set; }
+        public DbSet<UsageTracking> UsageTracking { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -49,6 +52,30 @@ namespace BlazorQuizApp.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => new { e.QuestionId, e.SelectedOptionId });
+            });
+
+            builder.Entity<Subscription>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => new { e.UserId, e.IsActive });
+                entity.HasIndex(e => e.StripeSubscriptionId);
+            });
+
+            builder.Entity<UsageTracking>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+                entity.HasIndex(e => new { e.UserId, e.Year, e.Month }).IsUnique();
+            });
+
+            builder.Entity<AuditLog>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => new { e.EntityType, e.EntityId });
             });
         }
     }

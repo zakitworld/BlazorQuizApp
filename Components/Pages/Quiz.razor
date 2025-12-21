@@ -7,6 +7,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @inject IQuizBusinessService QuizBusinessService
+@inject ISubscriptionService SubscriptionService
 @inject INotificationService NotificationService
 @inject NavigationManager NavigationManager
 @inject IOptions<AppSettings> AppSettings
@@ -17,7 +18,28 @@
 
 <LoadingSpinner IsLoading="@isLoading" Message="Loading quiz questions..." />
 
-@if (!isLoading && questions.Any())
+@if (!canTakeQuiz && !isLoading)
+{
+    <div class="alert alert-warning">
+        <h4 class="alert-heading">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Quiz Limit Reached
+        </h4>
+        <p>
+            You've reached your monthly quiz limit of @monthlyLimit quizzes. 
+            You've taken @monthlyCount quiz@(monthlyCount != 1 ? "es" : "") this month.
+        </p>
+        <hr>
+        <p class="mb-0">
+            Upgrade to Premium for unlimited quizzes and advanced features!
+        </p>
+        <a href="/pricing" class="btn btn-primary mt-3">
+            <i class="bi bi-star me-1"></i>
+            View Pricing Plans
+        </a>
+    </div>
+}
+else if (!isLoading && questions.Any())
 {
     <div class="quiz-container">
         @if (!isQuizCompleted)
@@ -87,7 +109,7 @@
                             <div class="alert alert-danger">
                                 <i class="bi bi-x-circle-fill me-2"></i>
                                 Incorrect. The correct answer is: 
-                                <strong>@currentQuestion.Options.First(o => o.Id == currentQuestion.CorrectOptionId).Text</strong>
+                                <strong>@GetCorrectAnswerText()</strong>
                             </div>
                         }
                         <button class="btn btn-primary" @onclick="NextQuestion">
@@ -181,6 +203,9 @@ else if (!isLoading && !questions.Any())
     private DateTime quizStartTime = DateTime.UtcNow;
     private string currentUserId = string.Empty;
     private string currentUserName = string.Empty;
+    private bool canTakeQuiz = true;
+    private int monthlyCount = 0;
+    private int monthlyLimit = 5;
 
     private QuizQuestion? currentQuestion => 
         questions.Count > 0 && currentQuestionIndex < questions.Count 
@@ -204,6 +229,22 @@ else if (!isLoading && !questions.Any())
             {
                 currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
                 currentUserName = authState.User.FindFirst(ClaimTypes.Email)?.Value ?? "Anonymous";
+            }
+            
+            // Check subscription limits
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                canTakeQuiz = await SubscriptionService.CanTakeQuizAsync(currentUserId);
+                monthlyCount = await SubscriptionService.GetMonthlyQuizCountAsync(currentUserId);
+                var tier = await SubscriptionService.GetUserTierAsync(currentUserId);
+                monthlyLimit = tier.GetMonthlyQuizLimit();
+                
+                if (!canTakeQuiz)
+                {
+                    NotificationService.ShowWarning($"You've reached your monthly limit of {monthlyLimit} quizzes. Upgrade to Premium for unlimited access!");
+                    isLoading = false;
+                    return;
+                }
             }
             
             questions = await QuizBusinessService.GetQuestionsAsync();
@@ -303,6 +344,9 @@ else if (!isLoading && !questions.Any())
                 {
                     quizResult.Duration = duration;
                 }
+                
+                // Track quiz usage for subscription limits
+                await SubscriptionService.IncrementQuizUsageAsync(currentUserId);
             }
             catch (Exception dbEx)
             {
@@ -373,6 +417,21 @@ else if (!isLoading && !questions.Any())
     private double GetProgressPercentage()
     {
         return questions.Count > 0 ? (double)(currentQuestionIndex + 1) / questions.Count * 100 : 0;
+    }
+
+    private string GetCorrectAnswerText()
+    {
+        if (currentQuestion == null) return "Unknown";
+        
+        try
+        {
+            var correctOption = currentQuestion.Options.FirstOrDefault(o => o.Id == currentQuestion.CorrectOptionId);
+            return correctOption?.Text ?? "Unknown";
+        }
+        catch
+        {
+            return "Unknown";
+        }
     }
 
     private string GetOptionClass(QuizOption option)

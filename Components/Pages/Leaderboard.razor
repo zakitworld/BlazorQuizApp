@@ -6,7 +6,16 @@
 
 <h1>Quiz Leaderboard</h1>
 
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="RefreshLeaderboard">
+        <i class="bi bi-arrow-clockwise me-1"></i>
+        Refresh Leaderboard
+    </button>
+</div>
+
 <LoadingSpinner IsLoading="@isLoading" Message="Loading leaderboard..." />
+
+
 
 @if (!isLoading && leaderboard.Any())
 {
@@ -66,6 +75,11 @@ else if (!isLoading && !leaderboard.Any())
     <div class="alert alert-info">
         <i class="bi bi-info-circle me-2"></i>
         No quiz results yet. Be the first to take a quiz!
+        <br />
+        <a href="/quiz" class="btn btn-primary mt-2">
+            <i class="bi bi-play-circle me-1"></i>
+            Take a Quiz
+        </a>
     </div>
 }
 
@@ -75,14 +89,32 @@ else if (!isLoading && !leaderboard.Any())
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadLeaderboard();
+    }
+
+    private async Task RefreshLeaderboard()
+    {
+        await LoadLeaderboard();
+    }
+
+    private async Task LoadLeaderboard()
+    {
         try
         {
             isLoading = true;
             leaderboard = await QuizBusinessService.GetLeaderboardAsync(10);
+            NotificationService.ShowSuccess($"Loaded {leaderboard.Count} quiz results");
         }
         catch (Exception ex)
         {
-            NotificationService.ShowError("Failed to load leaderboard. Please try again later.");
+            var errorMessage = $"Failed to load leaderboard: {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorMessage += $"\nInner exception: {ex.InnerException.Message}";
+            }
+            NotificationService.ShowError(errorMessage);
+            Console.WriteLine($"Leaderboard error: {ex}");
+            Console.WriteLine($"Full exception details: {ex}");
         }
         finally
         {

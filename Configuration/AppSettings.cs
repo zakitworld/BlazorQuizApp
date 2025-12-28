@@ -27,17 +27,17 @@ namespace BlazorQuizApp.Configuration
         public string FromName { get; set; } = string.Empty;
     }
 
-    public class StripeSettings
+    public class PaystackSettings
     {
-        public string PublishableKey { get; set; } = string.Empty;
+        public string PublicKey { get; set; } = string.Empty;
         public string SecretKey { get; set; } = string.Empty;
-        public string WebhookSecret { get; set; } = string.Empty;
-        public PricingIds PricingIds { get; set; } = new();
+        public string CallbackUrl { get; set; } = string.Empty;
+        public PricingPlans PricingPlans { get; set; } = new();
     }
 
-    public class PricingIds
+    public class PricingPlans
     {
-        public string PremiumMonthly { get; set; } = string.Empty;
-        public string ProMonthly { get; set; } = string.Empty;
+        public string PremiumMonthly { get; set; } = string.Empty; // Plan code
+        public string ProMonthly { get; set; } = string.Empty; // Plan code
     }
 }

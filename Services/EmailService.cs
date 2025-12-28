@@ -33,7 +33,10 @@ namespace BlazorQuizApp.Services
         {
             try
             {
-                var verificationUrl = $"{_appSettings.BaseUrl}/Account/ConfirmEmail?userId={userId}&code={Uri.EscapeDataString(token)}";
+                var baseUrl = string.IsNullOrWhiteSpace(_appSettings.BaseUrl) 
+                    ? "https://localhost:7233" 
+                    : _appSettings.BaseUrl.TrimEnd('/');
+                var verificationUrl = $"{baseUrl}/Account/ConfirmEmail?userId={userId}&code={Uri.EscapeDataString(token)}";
 
                 var subject = "Verify your email - Quiz App";
                 var htmlContent = $@"
@@ -84,7 +87,10 @@ namespace BlazorQuizApp.Services
         {
             try
             {
-                var resetUrl = $"{_appSettings.BaseUrl}/Account/ResetPassword?code={Uri.EscapeDataString(token)}";
+                var baseUrl = string.IsNullOrWhiteSpace(_appSettings.BaseUrl) 
+                    ? "https://localhost:7233" 
+                    : _appSettings.BaseUrl.TrimEnd('/');
+                var resetUrl = $"{baseUrl}/Account/ResetPassword?code={Uri.EscapeDataString(token)}";
 
                 var subject = "Reset your password - Quiz App";
                 var htmlContent = $@"
@@ -154,7 +160,7 @@ namespace BlazorQuizApp.Services
                                 <li>Upgrade to Premium for unlimited quizzes and advanced features</li>
                             </ul>
                             <div style='text-align: center; margin: 30px 0;'>
-                                <a href='{_appSettings.BaseUrl}/quiz' 
+                                <a href='{(string.IsNullOrWhiteSpace(_appSettings.BaseUrl) ? "https://localhost:7233" : _appSettings.BaseUrl.TrimEnd('/'))}/quiz' 
                                    style='background-color: #0d6efd; color: white; padding: 12px 30px; 
                                           text-decoration: none; border-radius: 5px; display: inline-block;'>
                                     Start Your First Quiz

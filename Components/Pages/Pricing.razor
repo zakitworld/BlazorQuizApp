@@ -3,7 +3,7 @@
 @using BlazorQuizApp.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject IStripePaymentService StripeService
+@inject IPaystackPaymentService PaystackService
 @inject ISubscriptionService SubscriptionService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
@@ -11,124 +11,134 @@
 
 <PageTitle>Pricing - Quiz App</PageTitle>
 
-<div class="container my-5">
-    <div class="text-center mb-5">
-        <h1 class="display-4 mb-3">Choose Your Plan</h1>
-        <p class="lead text-muted">Select the perfect plan for your quiz journey</p>
-    </div>
+<div class="pricing-page py-5">
+    <div class="container">
+        <div class="text-center mb-5 animate__animated animate__fadeInDown">
+            <h1 class="display-3 fw-bold mb-3 gradient-text">Choose Your Journey</h1>
+            <p class="lead text-muted mx-auto" style="max-width: 600px;">
+                Unlock your full potential with our premium quiz features. Choose the plan that best fits your goals.
+            </p>
+        </div>
 
-    <div class="row g-4">
-        @foreach (var tier in Enum.GetValues<SubscriptionTier>())
-        {
-                <div class="col-md-6 col-lg-3">
-                    <div class="card h-100 @(tier == SubscriptionTier.Premium ? "border-primary shadow-lg" : "")">
-                    @if (tier == SubscriptionTier.Premium)
-                    {
-                                <div class="card-header bg-primary text-white text-center">
-                                    <strong>MOST POPULAR</strong>
-                                </div>
-                    }
-                        <div class="card-body d-flex flex-column">
-                            <h3 class="card-title text-center">@tier.GetDisplayName()</h3>
+        <div class="row g-4 justify-content-center">
+            @foreach (var tier in Enum.GetValues<SubscriptionTier>())
+            {
+                <div class="col-md-6 col-lg-3 animate__animated animate__fadeInUp" style="animation-delay: @((int)tier * 0.1)s">
+                    <div class="card h-100 pricing-card @(tier == SubscriptionTier.Premium ? "featured-card" : "")">
+                        @if (tier == SubscriptionTier.Premium)
+                        {
+                            <div class="featured-badge">MOST POPULAR</div>
+                        }
+                        
+                        <div class="card-body p-4 d-flex flex-column">
                             <div class="text-center mb-4">
-                                <span class="display-4 fw-bold">$@tier.GetMonthlyPrice().ToString("F2")</span>
-                                <span class="text-muted">/month</span>
+                                <h3 class="tier-name">@tier.GetDisplayName()</h3>
+                                <div class="price-container">
+                                    <span class="currency">GHS</span>
+                                    <span class="amount">@tier.GetMonthlyPrice().ToString("N0")</span>
+                                    <span class="period">/mo</span>
+                                </div>
                             </div>
 
-                            <ul class="list-unstyled mb-4 flex-grow-1">
-                            @foreach (var feature in tier.GetFeatures())
-                            {
-                                        <li class="mb-2">
-                                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                    @feature
-                                        </li>
-                            }
+                            <div class="divider mb-4"></div>
+
+                            <ul class="feature-list list-unstyled mb-4 flex-grow-1">
+                                @foreach (var feature in tier.GetFeatures())
+                                {
+                                    <li class="mb-3 d-flex align-items-center">
+                                        <div class="feature-icon-wrapper me-3">
+                                            <i class="bi bi-check2 text-primary"></i>
+                                        </div>
+                                        <span class="feature-text text-muted">@feature</span>
+                                    </li>
+                                }
                             </ul>
 
-                        @if (currentTier == tier)
-                        {
-                                    <button class="btn btn-secondary w-100" disabled>
-                                        <i class="bi bi-check-circle me-1"></i>
-                                        Current Plan
+                            <div class="action-wrapper mt-auto">
+                                @if (currentTier == tier)
+                                {
+                                    <button class="btn btn-current w-100 py-3" disabled>
+                                        <i class="bi bi-patch-check-fill me-2"></i>
+                                        Active Plan
                                     </button>
-                        }
-                        else if (tier == SubscriptionTier.Free)
-                        {
-                                    <button class="btn btn-outline-secondary w-100" disabled>
-                                        Free Forever
+                                }
+                                else if (tier == SubscriptionTier.Free)
+                                {
+                                    <button class="btn btn-outline-secondary w-100 py-3" disabled>
+                                        Free Tier
                                     </button>
-                        }
-                        else if (tier == SubscriptionTier.Enterprise)
-                        {
-                                    <a href="mailto:support@quizapp.com" class="btn btn-outline-primary w-100">
-                                        <i class="bi bi-envelope me-1"></i>
+                                }
+                                else if (tier == SubscriptionTier.Enterprise)
+                                {
+                                    <a href="mailto:support@quizapp.com" class="btn btn-enterprise w-100 py-3">
+                                        <i class="bi bi-envelope-paper me-2"></i>
                                         Contact Sales
                                     </a>
-                        }
-                        else
-                        {
-                                    <button class="btn @(tier == SubscriptionTier.Premium ? "btn-primary" : "btn-outline-primary") w-100" 
-                            @onclick="() => HandleSubscribe(tier)"
-                                            disabled="@isProcessing">
-                                @if (isProcessing && selectedTier == tier)
-                                {
-                                                <span class="spinner-border spinner-border-sm me-2"></span>
                                 }
-                                        <i class="bi bi-arrow-right-circle me-1"></i>
-                                @(currentTier < tier ? "Upgrade" : "Downgrade")
+                                else
+                                {
+                                    <button class="btn @(tier == SubscriptionTier.Premium ? "btn-premium" : "btn-standard") w-100 py-3" 
+                                            @onclick="() => HandleSubscribe(tier)"
+                                            disabled="@isProcessing">
+                                        @if (isProcessing && selectedTier == tier)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2"></span>
+                                            <span>Processing...</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@(currentTier < tier ? "Upgrade Now" : "Downgrade")</span>
+                                            <i class="bi bi-arrow-right ms-2"></i>
+                                        }
                                     </button>
-                        }
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
-        }
-    </div>
+            }
+        </div>
 
-    <div class="row mt-5">
-        <div class="col-lg-8 mx-auto">
-            <div class="card">
-                <div class="card-body">
-                    <h4 class="card-title mb-4">
-                        <i class="bi bi-question-circle me-2"></i>
-                        Frequently Asked Questions
-                    </h4>
-
-                    <div class="accordion" id="faqAccordion">
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                                    Can I cancel anytime?
-                                </button>
-                            </h2>
-                            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    Yes! You can cancel your subscription at any time. You'll continue to have access until the end of your billing period.
+        <div class="faq-section mt-5 py-5 animate__animated animate__fadeIn">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="glass-container p-5">
+                        <h2 class="text-center mb-5 fw-bold">General Questions</h2>
+                        <div class="accordion accordion-flush" id="faqAccordion">
+                            <div class="accordion-item bg-transparent">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed bg-transparent fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                        Can I cancel my subscription anytime?
+                                    </button>
+                                </h2>
+                                <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body text-muted">
+                                        Yes, you can cancel at any time through your account settings. You'll maintain access to your features until the end of your current billing period.
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                                    What payment methods do you accept?
-                                </button>
-                            </h2>
-                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    We accept all major credit cards (Visa, MasterCard, American Express) through our secure Stripe payment processor.
+                            <div class="accordion-item bg-transparent">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed bg-transparent fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                        How does the payment process work?
+                                    </button>
+                                </h2>
+                                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body text-muted">
+                                        We use Paystack, a secure payment gateway. You can pay using your credit/debit card, mobile money (MTN, Vodafone, AirtelTigo), or bank transfer.
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                                    Can I upgrade or downgrade my plan?
-                                </button>
-                            </h2>
-                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    Absolutely! You can upgrade or downgrade your plan at any time. Changes will be prorated based on your billing cycle.
+                            <div class="accordion-item bg-transparent">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed bg-transparent fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                        Are there any hidden fees?
+                                    </button>
+                                </h2>
+                                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body text-muted">
+                                        No hidden fees. The price you see is what you pay per month. All taxes and processing fees are included in the displayed amount.
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -138,6 +148,174 @@
         </div>
     </div>
 </div>
+
+<style>
+    .pricing-page {
+        background: radial-gradient(circle at top right, rgba(0, 123, 255, 0.05), transparent),
+                    radial-gradient(circle at bottom left, rgba(0, 123, 255, 0.05), transparent);
+        min-height: 100vh;
+    }
+
+    .gradient-text {
+        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .pricing-card {
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        border-radius: 20px;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        background: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .pricing-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        border-color: rgba(13, 110, 253, 0.2);
+    }
+
+    .featured-card {
+        border: 2px solid #0d6efd;
+        transform: scale(1.03);
+    }
+
+    .featured-card:hover {
+        transform: translateY(-10px) scale(1.05);
+    }
+
+    .featured-badge {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background: #0d6efd;
+        color: white;
+        padding: 8px 16px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border-bottom-left-radius: 20px;
+        letter-spacing: 1px;
+    }
+
+    .tier-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #212529;
+        margin-bottom: 1rem;
+    }
+
+    .price-container {
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 4px;
+    }
+
+    .currency {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #6c757d;
+        margin-bottom: 1rem;
+    }
+
+    .amount {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #212529;
+    }
+
+    .period {
+        font-size: 1rem;
+        color: #6c757d;
+    }
+
+    .divider {
+        height: 1px;
+        background: linear-gradient(to right, transparent, rgba(0,0,0,0.1), transparent);
+    }
+
+    .feature-icon-wrapper {
+        width: 24px;
+        height: 24px;
+        background: rgba(13, 110, 253, 0.1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .feature-text {
+        font-size: 0.95rem;
+    }
+
+    .btn {
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-premium {
+        background: linear-gradient(135deg, #0d6efd 0%, #004dc0 100%);
+        color: white;
+        border: none;
+    }
+
+    .btn-premium:hover {
+        background: linear-gradient(135deg, #004dc0 0%, #003a91 100%);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .btn-standard {
+        border: 2px solid #0d6efd;
+        color: #0d6efd;
+        background: transparent;
+    }
+
+    .btn-standard:hover {
+        background: #0d6efd;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .btn-current {
+        background: #f8f9fa;
+        color: #198754;
+        border: 1px solid #dee2e6;
+    }
+
+    .btn-enterprise {
+        background: #212529;
+        color: white;
+        border: none;
+    }
+
+    .btn-enterprise:hover {
+        background: #000;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .glass-container {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        border-radius: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+
+    .accordion-button:not(.collapsed) {
+        box-shadow: none;
+        color: #0d6efd;
+    }
+
+    .accordion-item {
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+</style>
 
 @code {
     private SubscriptionTier currentTier = SubscriptionTier.Free;
@@ -176,12 +354,12 @@
             selectedTier = tier;
             StateHasChanged();
 
-            var checkoutUrl = await StripeService.CreateCheckoutSessionAsync(currentUserId, currentUserEmail, tier);
-            NavigationManager.NavigateTo(checkoutUrl, true);
+            var paymentUrl = await PaystackService.InitializePaymentAsync(currentUserId, currentUserEmail, tier);
+            NavigationManager.NavigateTo(paymentUrl, true);
         }
         catch (Exception ex)
         {
-            NotificationService.ShowError($"Failed to start checkout: {ex.Message}");
+            NotificationService.ShowError($"Failed to start payment: {ex.Message}");
         }
         finally
         {

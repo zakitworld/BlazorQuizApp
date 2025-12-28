@@ -70,9 +70,9 @@ namespace BlazorQuizApp.Models
             return tier switch
             {
                 SubscriptionTier.Free => 0m,
-                SubscriptionTier.Premium => 9.99m,
-                SubscriptionTier.Pro => 29.99m,
-                SubscriptionTier.Enterprise => 99.99m,
+                SubscriptionTier.Premium => 25m,      // GHS 25.00
+                SubscriptionTier.Pro => 75m,          // GHS 75.00
+                SubscriptionTier.Enterprise => 250m, // GHS 250.00
                 _ => 0m
             };
         }

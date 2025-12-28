@@ -3,23 +3,57 @@ using BlazorQuizApp.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
+using System.Text.RegularExpressions;
 
 namespace BlazorQuizApp.Services
 {
+    /// <summary>
+    /// Business service for quiz operations including CRUD operations for questions,
+    /// quiz submission, and result retrieval with caching support.
+    /// </summary>
     public class QuizBusinessService : IQuizBusinessService
     {
         private readonly ApplicationDbContext _context;
         private readonly QuizService _quizService;
         private readonly ILogger<QuizBusinessService> _logger;
+        private readonly ICacheService? _cacheService;
+        private readonly IValidationService? _validationService;
 
-        public QuizBusinessService(ApplicationDbContext context, QuizService quizService, ILogger<QuizBusinessService> logger)
+        public QuizBusinessService(
+            ApplicationDbContext context, 
+            QuizService quizService, 
+            ILogger<QuizBusinessService> logger,
+            ICacheService? cacheService = null,
+            IValidationService? validationService = null)
         {
             _context = context;
             _quizService = quizService;
             _logger = logger;
+            _cacheService = cacheService;
+            _validationService = validationService;
         }
 
+        /// <summary>
+        /// Retrieves all quiz questions from the database with caching support.
+        /// Falls back to JSON file if database access fails.
+        /// </summary>
+        /// <returns>List of quiz questions</returns>
         public async Task<List<QuizQuestion>> GetQuestionsAsync()
+        {
+            const string cacheKey = "quiz_questions_all";
+            
+            if (_cacheService != null)
+            {
+                return await _cacheService.GetOrSetAsync(cacheKey, async () =>
+                {
+                    return await FetchQuestionsFromDatabaseAsync();
+                }, TimeSpan.FromMinutes(10)) ?? new List<QuizQuestion>();
+            }
+
+            return await FetchQuestionsFromDatabaseAsync();
+        }
+
+        private async Task<List<QuizQuestion>> FetchQuestionsFromDatabaseAsync()
         {
             try
             {
@@ -37,6 +71,12 @@ namespace BlazorQuizApp.Services
             }
         }
 
+        /// <summary>
+        /// Retrieves a specific question by ID from the database.
+        /// Falls back to JSON file if database access fails.
+        /// </summary>
+        /// <param name="id">The question ID</param>
+        /// <returns>The quiz question or null if not found</returns>
         public async Task<QuizQuestion?> GetQuestionByIdAsync(int id)
         {
             try
@@ -54,6 +94,12 @@ namespace BlazorQuizApp.Services
             }
         }
 
+        /// <summary>
+        /// Adds a new question to the database after validation and sanitization.
+        /// Invalidates the questions cache upon successful addition.
+        /// </summary>
+        /// <param name="questionForm">The question form data</param>
+        /// <returns>True if successful, false otherwise</returns>
         public async Task<bool> AddQuestionAsync(NewQuestionForm questionForm)
         {
             try
@@ -65,10 +111,16 @@ namespace BlazorQuizApp.Services
 
                 _logger.LogInformation("Adding new question: {QuestionText}", questionForm.QuestionText);
                 
+                // Sanitize inputs
+                var sanitizedQuestionText = _validationService?.SanitizeInput(questionForm.QuestionText, 1000) 
+                    ?? questionForm.QuestionText.Trim();
+                var sanitizedCategory = _validationService?.SanitizeInput(questionForm.Category, 100) 
+                    ?? questionForm.Category.Trim();
+
                 var question = new QuizQuestion
                 {
-                    QuestionText = questionForm.QuestionText,
-                    Category = questionForm.Category,
+                    QuestionText = sanitizedQuestionText,
+                    Category = sanitizedCategory,
                     Difficulty = questionForm.Difficulty,
                     CorrectOptionId = 0, // Temporary value, will be set after saving
                     CreatedAt = DateTime.UtcNow,
@@ -77,14 +129,20 @@ namespace BlazorQuizApp.Services
 
                 for (int i = 0; i < questionForm.OptionTexts.Count; i++)
                 {
-                    if (!string.IsNullOrWhiteSpace(questionForm.OptionTexts[i]))
+                    var optionText = questionForm.OptionTexts[i];
+                    if (!string.IsNullOrWhiteSpace(optionText))
                     {
-                        question.Options.Add(new QuizOption { Text = questionForm.OptionTexts[i] });
+                        var sanitizedOption = _validationService?.SanitizeInput(optionText, 500) 
+                            ?? optionText.Trim();
+                        question.Options.Add(new QuizOption { Text = sanitizedOption });
                     }
                 }
 
                 _context.QuizQuestions.Add(question);
                 await _context.SaveChangesAsync();
+                
+                // Invalidate cache
+                _cacheService?.Remove("quiz_questions_all");
 
                 // Now set the correct option ID using the actual database ID
                 if (questionForm.CorrectOptionIndex >= 0 && questionForm.CorrectOptionIndex < question.Options.Count)
@@ -123,8 +181,14 @@ namespace BlazorQuizApp.Services
                     return false;
                 }
 
-                question.QuestionText = questionForm.QuestionText;
-                question.Category = questionForm.Category;
+                // Sanitize inputs
+                var sanitizedQuestionText = _validationService?.SanitizeInput(questionForm.QuestionText, 1000) 
+                    ?? questionForm.QuestionText.Trim();
+                var sanitizedCategory = _validationService?.SanitizeInput(questionForm.Category, 100) 
+                    ?? questionForm.Category.Trim();
+
+                question.QuestionText = sanitizedQuestionText;
+                question.Category = sanitizedCategory;
                 question.Difficulty = questionForm.Difficulty;
                 question.CorrectOptionId = 0; // Temporary value, will be set after saving
                 question.UpdatedAt = DateTime.UtcNow;
@@ -136,9 +200,12 @@ namespace BlazorQuizApp.Services
                 // Add new options
                 for (int i = 0; i < questionForm.OptionTexts.Count; i++)
                 {
-                    if (!string.IsNullOrWhiteSpace(questionForm.OptionTexts[i]))
+                    var optionText = questionForm.OptionTexts[i];
+                    if (!string.IsNullOrWhiteSpace(optionText))
                     {
-                        question.Options.Add(new QuizOption { Text = questionForm.OptionTexts[i] });
+                        var sanitizedOption = _validationService?.SanitizeInput(optionText, 500) 
+                            ?? optionText.Trim();
+                        question.Options.Add(new QuizOption { Text = sanitizedOption });
                     }
                 }
 
@@ -150,6 +217,10 @@ namespace BlazorQuizApp.Services
                     question.CorrectOptionId = question.Options[questionForm.CorrectOptionIndex].Id;
                     await _context.SaveChangesAsync();
                 }
+                
+                // Invalidate cache
+                _cacheService?.Remove("quiz_questions_all");
+                
                 return true;
             }
             catch (Exception ex)
@@ -177,6 +248,11 @@ namespace BlazorQuizApp.Services
 
                 _context.QuizQuestions.Remove(question);
                 await _context.SaveChangesAsync();
+                
+                // Invalidate cache
+                _cacheService?.Remove("quiz_questions_all");
+                _cacheService?.Clear(); // Clear leaderboard cache too
+                
                 return true;
             }
             catch (Exception ex)
@@ -237,6 +313,9 @@ namespace BlazorQuizApp.Services
                 _context.QuizAnswers.UpdateRange(answers);
                 await _context.SaveChangesAsync();
 
+                // Invalidate cache
+                _cacheService?.Clear(); // Clear leaderboard and other caches
+
                 _logger.LogInformation("Quiz submitted for user {UserId} with score {Score}%", 
                     userId, result.ScorePercentage);
 
@@ -245,6 +324,22 @@ namespace BlazorQuizApp.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error submitting quiz for user {UserId}", userId);
+                throw;
+            }
+        }
+
+        public async Task<QuizResult?> GetQuizResultByIdAsync(int resultId)
+        {
+            try
+            {
+                _logger.LogInformation("Retrieving quiz result with ID: {ResultId}", resultId);
+                return await _context.QuizResults
+                    .Include(r => r.Answers)
+                    .FirstOrDefaultAsync(r => r.Id == resultId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving quiz result with ID: {ResultId}", resultId);
                 throw;
             }
         }
@@ -268,6 +363,21 @@ namespace BlazorQuizApp.Services
         }
 
         public async Task<List<QuizResult>> GetLeaderboardAsync(int topCount = 10)
+        {
+            var cacheKey = $"leaderboard_top_{topCount}";
+            
+            if (_cacheService != null)
+            {
+                return await _cacheService.GetOrSetAsync(cacheKey, async () =>
+                {
+                    return await FetchLeaderboardFromDatabaseAsync(topCount);
+                }, TimeSpan.FromMinutes(5)) ?? new List<QuizResult>();
+            }
+
+            return await FetchLeaderboardFromDatabaseAsync(topCount);
+        }
+
+        private async Task<List<QuizResult>> FetchLeaderboardFromDatabaseAsync(int topCount)
         {
             try
             {
@@ -334,24 +444,67 @@ namespace BlazorQuizApp.Services
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(questionForm.QuestionText))
+                // Validate question text
+                if (_validationService != null)
                 {
-                    _logger.LogWarning("Question validation failed: Empty question text");
+                    if (!_validationService.IsValidQuestionText(questionForm.QuestionText))
+                    {
+                        _logger.LogWarning("Question validation failed: Invalid question text");
+                        return false;
+                    }
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(questionForm.QuestionText) || questionForm.QuestionText.Length < 10)
+                    {
+                        _logger.LogWarning("Question validation failed: Empty or too short question text");
+                        return false;
+                    }
+                }
+
+                // Validate category
+                if (_validationService != null && !_validationService.IsValidCategory(questionForm.Category))
+                {
+                    _logger.LogWarning("Question validation failed: Invalid category");
                     return false;
                 }
 
+                // Validate difficulty
+                if (_validationService != null && !_validationService.IsValidDifficulty(questionForm.Difficulty))
+                {
+                    _logger.LogWarning("Question validation failed: Invalid difficulty");
+                    return false;
+                }
+
+                // Validate options
                 if (questionForm.OptionTexts == null || questionForm.OptionTexts.Count < 2)
                 {
                     _logger.LogWarning("Question validation failed: Insufficient options");
                     return false;
                 }
 
-                if (questionForm.OptionTexts.Any(string.IsNullOrWhiteSpace))
+                // Validate each option
+                foreach (var optionText in questionForm.OptionTexts)
                 {
-                    _logger.LogWarning("Question validation failed: Empty option text");
-                    return false;
+                    if (_validationService != null)
+                    {
+                        if (!_validationService.IsValidOptionText(optionText))
+                        {
+                            _logger.LogWarning("Question validation failed: Invalid option text");
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        if (string.IsNullOrWhiteSpace(optionText))
+                        {
+                            _logger.LogWarning("Question validation failed: Empty option text");
+                            return false;
+                        }
+                    }
                 }
 
+                // Validate correct option index
                 if (questionForm.CorrectOptionIndex < 0 || questionForm.CorrectOptionIndex >= questionForm.OptionTexts.Count)
                 {
                     _logger.LogWarning("Question validation failed: Invalid correct option index");

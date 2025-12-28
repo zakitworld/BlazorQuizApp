@@ -91,7 +91,7 @@ else if (!isLoading && question != null)
                 NotificationService.ShowWarning("Question not found.");
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             NotificationService.ShowError("Failed to load question details. Please try again later.");
         }

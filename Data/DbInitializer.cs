@@ -32,8 +32,15 @@ namespace BlazorQuizApp.Data
 
                 var adminEmail = appSettings.AdminUser.Email;
                 var adminUser = await userManager.FindByEmailAsync(adminEmail);
-                if (adminUser != null && adminUser.EmailConfirmed)
+                if (adminUser != null)
                 {
+                    if (!adminUser.EmailConfirmed)
+                    {
+                        adminUser.EmailConfirmed = true;
+                        await userManager.UpdateAsync(adminUser);
+                        logger.LogInformation($"Admin user {adminEmail} email confirmed.");
+                    }
+
                     if (!await userManager.IsInRoleAsync(adminUser, adminRole))
                     {
                         await userManager.AddToRoleAsync(adminUser, adminRole);
@@ -59,11 +66,11 @@ namespace BlazorQuizApp.Data
             try
             {
                 logger.LogInformation("Starting to seed sample quiz results...");
-                
+
                 // Check if we already have quiz results
                 var existingResults = await context.QuizResults.CountAsync();
                 logger.LogInformation($"Found {existingResults} existing quiz results in database.");
-                
+
                 if (existingResults > 0)
                 {
                     logger.LogInformation($"Database already contains {existingResults} quiz results. Skipping sample data seeding.");
@@ -124,7 +131,7 @@ namespace BlazorQuizApp.Data
 
                 logger.LogInformation("Adding {Count} sample quiz results to database...", sampleResults.Count);
                 await context.QuizResults.AddRangeAsync(sampleResults);
-                
+
                 logger.LogInformation("Saving changes to database...");
                 await context.SaveChangesAsync();
 
@@ -148,11 +155,11 @@ namespace BlazorQuizApp.Data
             try
             {
                 logger.LogInformation("Starting to seed sample questions...");
-                
+
                 // Check if we already have questions
                 var existingQuestions = await context.QuizQuestions.CountAsync();
                 logger.LogInformation($"Found {existingQuestions} existing questions in database.");
-                
+
                 if (existingQuestions > 0)
                 {
                     logger.LogInformation($"Database already contains {existingQuestions} questions. Skipping sample data seeding.");
@@ -231,4 +238,4 @@ namespace BlazorQuizApp.Data
             }
         }
     }
-} 
+}

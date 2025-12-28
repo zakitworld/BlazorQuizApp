@@ -1,9 +1,13 @@
 using BlazorQuizApp.Data;
 using BlazorQuizApp.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BlazorQuizApp.Services
 {
+    /// <summary>
+    /// Service interface for managing user subscriptions and usage tracking
+    /// </summary>
     public interface ISubscriptionService
     {
         Task<Subscription?> GetUserSubscriptionAsync(string userId);
@@ -16,16 +20,20 @@ namespace BlazorQuizApp.Services
         Task<bool> CancelSubscriptionAsync(string userId);
     }
 
+    /// <summary>
+    /// Service for managing user subscriptions, tracking quiz usage,
+    /// and enforcing subscription tier limits.
+    /// </summary>
     public class SubscriptionService : ISubscriptionService
     {
-        private readonly IDbContextFactory<ApplicationDbContext> _contextFactory;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<SubscriptionService> _logger;
 
         public SubscriptionService(
-            IDbContextFactory<ApplicationDbContext> contextFactory,
+            IServiceScopeFactory scopeFactory,
             ILogger<SubscriptionService> logger)
         {
-            _contextFactory = contextFactory;
+            _scopeFactory = scopeFactory;
             _logger = logger;
         }
 
@@ -33,7 +41,8 @@ namespace BlazorQuizApp.Services
         {
             try
             {
-                using var context = await _contextFactory.CreateDbContextAsync();
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 return await context.Subscriptions
                     .Where(s => s.UserId == userId && s.IsActive)
                     .OrderByDescending(s => s.CreatedAt)
@@ -79,7 +88,8 @@ namespace BlazorQuizApp.Services
         {
             try
             {
-                using var context = await _contextFactory.CreateDbContextAsync();
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var now = DateTime.UtcNow;
 
                 var usage = await context.UsageTracking
@@ -116,7 +126,8 @@ namespace BlazorQuizApp.Services
         {
             try
             {
-                using var context = await _contextFactory.CreateDbContextAsync();
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var now = DateTime.UtcNow;
 
                 var usage = await context.UsageTracking
@@ -137,7 +148,8 @@ namespace BlazorQuizApp.Services
         {
             try
             {
-                using var context = await _contextFactory.CreateDbContextAsync();
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
                 // Deactivate existing subscriptions
                 var existingSubscriptions = await context.Subscriptions
@@ -178,7 +190,8 @@ namespace BlazorQuizApp.Services
         {
             try
             {
-                using var context = await _contextFactory.CreateDbContextAsync();
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var subscription = await context.Subscriptions
                     .Where(s => s.UserId == userId && s.IsActive)
                     .FirstOrDefaultAsync();
@@ -204,7 +217,8 @@ namespace BlazorQuizApp.Services
         {
             try
             {
-                using var context = await _contextFactory.CreateDbContextAsync();
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var subscription = await context.Subscriptions
                     .Where(s => s.UserId == userId && s.IsActive)
                     .FirstOrDefaultAsync();

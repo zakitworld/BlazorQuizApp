@@ -223,7 +223,7 @@ else if (!isLoading && !questions.Any())
             isLoading = true;
             questions = await QuizBusinessService.GetQuestionsAsync();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             NotificationService.ShowError("Failed to load questions. Please try again later.");
         }
@@ -251,7 +251,7 @@ else if (!isLoading && !questions.Any())
                 NotificationService.ShowError("Failed to add question. Please check your input and try again.");
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             NotificationService.ShowError("An error occurred while adding the question. Please try again.");
         }
@@ -277,7 +277,7 @@ else if (!isLoading && !questions.Any())
                 NotificationService.ShowError("Failed to delete question. Please try again.");
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             NotificationService.ShowError("An error occurred while deleting the question. Please try again.");
         }

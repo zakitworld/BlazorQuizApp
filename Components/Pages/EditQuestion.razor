@@ -12,6 +12,7 @@
 <LoadingSpinner IsLoading="@isLoading" Message="Loading question..." />
 
 @if (!isLoading && question == null)
+
 {
     <div class="alert alert-warning">
         <i class="bi bi-exclamation-triangle me-2"></i>
@@ -21,7 +22,9 @@
         <i class="bi bi-arrow-left me-1"></i>Back to Questions
     </a>
 }
+
 else if (!isLoading && question != null)
+
 {
     <div class="card">
         <div class="card-header">
@@ -70,11 +73,12 @@ else if (!isLoading && question != null)
                     <label class="form-label">Options</label>
                     @for (int i = 0; i < questionForm.OptionTexts.Count; i++)
                     {
+
                         var index = i;
                         <div class="input-group mb-2">
                             <span class="input-group-text">@(index + 1)</span>
-                            <InputText class="form-control" @bind-Value="questionForm.OptionTexts[index]" 
-                                     placeholder="@($"Enter option {index + 1}")" />
+                            <InputText class="form-control" @bind-Value="questionForm.OptionTexts[index]"
+                                placeholder="@($"Enter option {index + 1}")" />
                             @if (questionForm.OptionTexts.Count > 2)
                             {
                                 <button type="button" class="btn btn-outline-danger" @onclick="() => RemoveOption(index)">
@@ -102,11 +106,14 @@ else if (!isLoading && question != null)
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
                         @if (isSubmitting)
+
                         {
                             <span class="spinner-border spinner-border-sm me-2" role="status"></span>
                             <span>Saving...</span>
                         }
+
                         else
+
                         {
                             <i class="bi bi-check-circle me-1"></i>
                             <span>Save Changes</span>
@@ -123,85 +130,166 @@ else if (!isLoading && question != null)
 
 @code {
     [Parameter]
+
     public int Id { get; set; }
 
+
+
     private QuizQuestion? question;
+
     private NewQuestionForm questionForm = new();
+
     private bool isLoading = true;
+
     private bool isSubmitting = false;
 
+
+
     protected override async Task OnInitializedAsync()
+
     {
+
         await LoadQuestion();
+
     }
+
+
 
     private async Task LoadQuestion()
+
     {
+
         try
+
         {
+
             isLoading = true;
+
             question = await QuizBusinessService.GetQuestionByIdAsync(Id);
-            
+
+
+
             if (question != null)
+
             {
+
                 questionForm.QuestionText = question.QuestionText;
+
                 questionForm.Category = question.Category;
+
                 questionForm.Difficulty = question.Difficulty;
+
                 questionForm.OptionTexts = question.Options.Select(o => o.Text).ToList();
+
                 questionForm.CorrectOptionIndex = question.CorrectOptionId - 1;
+
             }
+
         }
-        catch (Exception ex)
+
+        catch (Exception)
+
         {
+
             NotificationService.ShowError("Failed to load question. Please try again later.");
+
         }
+
         finally
+
         {
+
             isLoading = false;
+
         }
+
     }
+
+
 
     private async Task HandleValidSubmit()
+
     {
+
         try
+
         {
+
             isSubmitting = true;
+
             var success = await QuizBusinessService.UpdateQuestionAsync(Id, questionForm);
-            
+
+
+
             if (success)
+
             {
+
                 NotificationService.ShowSuccess("Question updated successfully!");
+
                 NavigationManager.NavigateTo("/manage-questions");
+
             }
+
             else
+
             {
+
                 NotificationService.ShowError("Failed to update question. Please check your input and try again.");
+
             }
+
         }
-        catch (Exception ex)
+
+        catch (Exception)
+
         {
+
             NotificationService.ShowError("An error occurred while updating the question. Please try again.");
+
         }
+
         finally
+
         {
+
             isSubmitting = false;
+
         }
+
     }
+
+
 
     private void AddOption()
+
     {
+
         questionForm.OptionTexts.Add(string.Empty);
+
     }
 
+
+
     private void RemoveOption(int index)
+
     {
+
         if (questionForm.OptionTexts.Count > 2)
+
         {
+
             questionForm.OptionTexts.RemoveAt(index);
+
             if (questionForm.CorrectOptionIndex >= questionForm.OptionTexts.Count)
+
             {
+
                 questionForm.CorrectOptionIndex = questionForm.OptionTexts.Count - 1;
+
             }
+
         }
+
     }
 }

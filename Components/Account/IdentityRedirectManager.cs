@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
 
@@ -16,6 +17,7 @@ namespace BlazorQuizApp.Components.Account
         };
 
         [DoesNotReturn]
+        [DebuggerStepThrough]
         public void RedirectTo(string? uri)
         {
             uri ??= "";
@@ -28,11 +30,21 @@ namespace BlazorQuizApp.Components.Account
 
             // During static rendering, NavigateTo throws a NavigationException which is handled by the framework as a redirect.
             // So as long as this is called from a statically rendered Identity component, the InvalidOperationException is never thrown.
-            navigationManager.NavigateTo(uri);
+            try
+            {
+                navigationManager.NavigateTo(uri);
+            }
+            catch (NavigationException)
+            {
+                // This is expected during static rendering to trigger a redirect.
+                throw;
+            }
+
             throw new InvalidOperationException($"{nameof(IdentityRedirectManager)} can only be used during static rendering.");
         }
 
         [DoesNotReturn]
+        [DebuggerStepThrough]
         public void RedirectTo(string uri, Dictionary<string, object?> queryParameters)
         {
             var uriWithoutQuery = navigationManager.ToAbsoluteUri(uri).GetLeftPart(UriPartial.Path);

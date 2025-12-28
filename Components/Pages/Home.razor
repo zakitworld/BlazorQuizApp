@@ -3,93 +3,87 @@
 
 <PageTitle>Quiz App</PageTitle>
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 text-center">
-            <div class="hero-section mb-5">
-                <h1 class="display-4 mb-3">
-                    <i class="bi bi-question-circle text-primary me-3"></i>
-                    Welcome to the Quiz App!
-                </h1>
-                <p class="lead text-muted">
-                    Test your knowledge on various topics with our interactive quiz system.
-                    Challenge yourself, track your progress, and compete with others!
-                </p>
-            </div>
-
-            <div class="features-grid">
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <div class="card h-100 feature-card">
-                            <div class="card-body text-center">
-                                <div class="feature-icon mb-3">
-                                    <i class="bi bi-play-circle-fill text-primary" style="font-size: 3rem;"></i>
-                                </div>
-                                <h5 class="card-title">Take a Quiz</h5>
-                                <p class="card-text">Start a new quiz and test your knowledge with timed questions.</p>
-                                <NavLink class="btn btn-primary" href="quiz">
-                                    <i class="bi bi-play me-1"></i>Start Quiz
-                                </NavLink>
-                            </div>
-                        </div>
+<div class="home-page">
+    <section class="hero-section py-5 text-white mb-5">
+        <div class="container py-5">
+            <div class="row align-items-center">
+                <div class="col-lg-6 animate__animated animate__fadeInLeft">
+                    <h1 class="display-2 fw-extrabold mb-4">
+                        Master Your <span class="text-highlight">Knowledge</span>
+                    </h1>
+                    <p class="lead mb-5 opacity-90 text-light-gray">
+                        Challenge yourself with interactive quizzes, track your progress in real-time, and climb the
+                        global leaderboard.
+                    </p>
+                    <div class="d-flex gap-3">
+                        <NavLink href="quiz" class="btn btn-primary-premium btn-lg px-5 py-3">
+                            <i class="bi bi-rocket-takeoff me-2"></i>Get Started
+                        </NavLink>
+                        <NavLink href="pricing" class="btn btn-outline-light-premium btn-lg px-5 py-3">
+                            <i class="bi bi-star me-2"></i>Go Pro
+                        </NavLink>
                     </div>
-
-                    <div class="col-md-6">
-                        <div class="card h-100 feature-card">
-                            <div class="card-body text-center">
-                                <div class="feature-icon mb-3">
-                                    <i class="bi bi-trophy-fill text-warning" style="font-size: 3rem;"></i>
-                                </div>
-                                <h5 class="card-title">Leaderboard</h5>
-                                <p class="card-text">See how you rank against other players and track top scores.</p>
-                                <NavLink class="btn btn-warning" href="leaderboard">
-                                    <i class="bi bi-trophy me-1"></i>View Leaderboard
-                                </NavLink>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <div class="card h-100 feature-card">
-                            <div class="card-body text-center">
-                                <div class="feature-icon mb-3">
-                                    <i class="bi bi-gear-fill text-secondary" style="font-size: 3rem;"></i>
-                                </div>
-                                <h5 class="card-title">Manage Questions</h5>
-                                <p class="card-text">Admin panel to add, edit, and manage quiz questions.</p>
-                                <NavLink class="btn btn-secondary" href="manage-questions">
-                                    <i class="bi bi-gear me-1"></i>Manage Questions
-                                </NavLink>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <div class="card h-100 feature-card">
-                            <div class="card-body text-center">
-                                <div class="feature-icon mb-3">
-                                    <i class="bi bi-graph-up text-info" style="font-size: 3rem;"></i>
-                                </div>
-                                <h5 class="card-title">Statistics</h5>
-                                <p class="card-text">View your quiz performance analytics and progress over time.</p>
-                                <NavLink class="btn btn-info" href="statistics">
-                                    <i class="bi bi-graph-up me-1"></i>View Stats
-                                </NavLink>
-                            </div>
-                        </div>
+                </div>
+                <div class="col-lg-6 d-none d-lg-block animate__animated animate__zoomIn">
+                    <div class="hero-image-wrapper p-4">
+                        <img src="images/hero-quiz.svg" alt="Quiz Hero" class="img-fluid floating-animation"
+                            onerror="this.src='https://illustrations.popsy.co/white/idea.svg'">
                     </div>
                 </div>
             </div>
+        </div>
+        <div class="hero-wave">
+            <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120"
+                preserveAspectRatio="none">
+                <path
+                    d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"
+                    class="shape-fill"></path>
+            </svg>
+        </div>
+    </section>
 
-            <div class="mt-5">
-                <div class="alert alert-info">
-                    <h6 class="alert-heading">
-                        <i class="bi bi-info-circle me-2"></i>
-                        Getting Started
-                    </h6>
-                    <p class="mb-0">
-                        New to the quiz? Simply click "Start Quiz" to begin your first quiz session. 
-                        Each quiz is timed and you'll get immediate feedback on your answers!
+    <div class="container pb-5">
+        <div class="section-header text-center mb-5 animate__animated animate__fadeIn">
+            <span class="badge bg-primary-soft text-primary px-3 py-2 mb-3 rounded-pill">FEATURES</span>
+            <h2 class="display-5 fw-bold">Everything You Need</h2>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3 animate__animated animate__fadeInUp" style="animation-delay: 0.1s">
+                <div class="feature-card-modern p-4 h-100 text-center">
+                    <div class="icon-circle bg-primary-soft text-primary mb-4">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
+                    <h4>Fast & Accurate</h4>
+                    <p class="text-muted">Experience lightning-fast quiz loading and real-time result calculations.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3 animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+                <div class="feature-card-modern p-4 h-100 text-center">
+                    <div class="icon-circle bg-warning-soft text-warning mb-4">
+                        <i class="bi bi-trophy"></i>
+                    </div>
+                    <h4>Competitive</h4>
+                    <p class="text-muted">Compete with users worldwide and secure your place on the leaderboard.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3 animate__animated animate__fadeInUp" style="animation-delay: 0.3s">
+                <div class="feature-card-modern p-4 h-100 text-center">
+                    <div class="icon-circle bg-info-soft text-info mb-4">
+                        <i class="bi bi-bar-chart"></i>
+                    </div>
+                    <h4>Analytics</h4>
+                    <p class="text-muted">Detailed statistics and performance tracking to help you improve every day.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3 animate__animated animate__fadeInUp" style="animation-delay: 0.4s">
+                <div class="feature-card-modern p-4 h-100 text-center">
+                    <div class="icon-circle bg-success-soft text-success mb-4">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h4>Verified</h4>
+                    <p class="text-muted">Quality checked questions by experts to ensure the best learning experience.
                     </p>
                 </div>
             </div>
@@ -98,22 +92,144 @@
 </div>
 
 <style>
-    .feature-card {
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    :root {
+        --primary-gradient: linear-gradient(135deg, #0d6efd 0%, #004dc0 100%);
+        --soft-blue: rgba(13, 110, 253, 0.1);
+        --soft-yellow: rgba(255, 193, 7, 0.1);
+        --soft-cyan: rgba(13, 202, 240, 0.1);
+        --soft-green: rgba(25, 135, 84, 0.1);
+    }
+
+    .fw-extrabold {
+        font-weight: 800;
+    }
+
+    .text-light-gray {
+        color: #e9ecef;
+    }
+
+    .opacity-90 {
+        opacity: 0.9;
+    }
+
+    .hero-section {
+        background: var(--primary-gradient);
+        position: relative;
+        overflow: hidden;
+        min-height: 60vh;
+        display: flex;
+        align-items: center;
+    }
+
+    .text-highlight {
+        color: #0dcaf0;
+        text-shadow: 0 0 20px rgba(13, 202, 240, 0.3);
+    }
+
+    .btn-primary-premium {
+        background: #fff;
+        color: #0d6efd;
         border: none;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        font-weight: 700;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     }
 
-    .feature-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    .btn-primary-premium:hover {
+        background: #e9ecef;
+        transform: translateY(-3px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
     }
 
-    .feature-icon {
-        transition: transform 0.2s ease-in-out;
+    .btn-outline-light-premium {
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: #fff;
+        font-weight: 700;
+        transition: all 0.3s ease;
     }
 
-    .feature-card:hover .feature-icon {
-        transform: scale(1.1);
+    .btn-outline-light-premium:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: #fff;
+        transform: translateY(-3px);
+    }
+
+    .hero-wave {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        overflow: hidden;
+        line-height: 0;
+        transform: rotate(180deg);
+    }
+
+    .hero-wave svg {
+        position: relative;
+        display: block;
+        width: calc(130% + 1.3px);
+        height: 100px;
+    }
+
+    .hero-wave .shape-fill {
+        fill: #FFFFFF;
+    }
+
+    .floating-animation {
+        animation: floating 3s ease-in-out infinite;
+    }
+
+    @@keyframes floating {
+        0% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-20px);
+        }
+
+        100% {
+            transform: translateY(0px);
+        }
+    }
+
+    .bg-primary-soft {
+        background: var(--soft-blue);
+    }
+
+    .bg-warning-soft {
+        background: var(--soft-yellow);
+    }
+
+    .bg-info-soft {
+        background: var(--soft-cyan);
+    }
+
+    .bg-success-soft {
+        background: var(--soft-green);
+    }
+
+    .feature-card-modern {
+        background: #fff;
+        border-radius: 20px;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+
+    .feature-card-modern:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+        border-color: var(--soft-blue);
+    }
+
+    .icon-circle {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        margin: 0 auto;
     }
 </style>

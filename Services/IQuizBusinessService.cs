@@ -10,6 +10,7 @@ namespace BlazorQuizApp.Services
         Task<bool> UpdateQuestionAsync(int id, NewQuestionForm questionForm);
         Task<bool> DeleteQuestionAsync(int id);
         Task<QuizResult> SubmitQuizAsync(List<QuizAnswer> answers, string userId);
+        Task<QuizResult?> GetQuizResultByIdAsync(int resultId);
         Task<List<QuizResult>> GetUserQuizHistoryAsync(string userId);
         Task<List<QuizResult>> GetLeaderboardAsync(int topCount = 10);
         Task<bool> ValidateQuizSubmissionAsync(List<QuizAnswer> answers);

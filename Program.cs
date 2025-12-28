@@ -30,6 +30,28 @@ try
 {
     Log.Information("Starting Blazor Quiz App");
 
+    // Validate BaseUrl configuration
+    var baseUrl = builder.Configuration["AppSettings:BaseUrl"];
+    if (string.IsNullOrWhiteSpace(baseUrl))
+    {
+        Log.Warning("BaseUrl is not configured, using default: https://localhost:7233");
+        baseUrl = "https://localhost:7233";
+    }
+    else
+    {
+        // Validate URL format
+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != "http" && uri.Scheme != "https"))
+        {
+            Log.Warning("Invalid BaseUrl format: {BaseUrl}, using default: https://localhost:7233", baseUrl);
+            baseUrl = "https://localhost:7233";
+        }
+        else
+        {
+            Log.Information("Using BaseUrl: {BaseUrl}", baseUrl);
+        }
+    }
+
     // Add services to the container.
     builder.Services.AddRazorComponents()
         .AddInteractiveServerComponents();
@@ -37,7 +59,7 @@ try
     // Configure strongly-typed settings
     builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
     builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
-    builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection("Stripe"));
+    builder.Services.Configure<PaystackSettings>(builder.Configuration.GetSection("Paystack"));
 
     // Rate Limiting Configuration
     builder.Services.AddMemoryCache();
@@ -54,18 +76,16 @@ try
     // Memory Cache for SmartASP.NET (no Redis available)
     builder.Services.AddMemoryCache();
 
-    // Health checks
+    // Health checks - register custom health check that uses factory
+    builder.Services.AddTransient<ApplicationDbContextHealthCheck>();
     builder.Services.AddHealthChecks()
-        .AddDbContextCheck<ApplicationDbContext>();
+        .AddCheck<ApplicationDbContextHealthCheck>("dbcontext");
 
-    // Database Context Factory for Blazor Server
+    // Database Context for Identity and scoped services
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-    builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
-        options.UseSqlServer(connectionString));
-
-    // Also add regular DbContext for Identity
+    // Add DbContext as scoped (automatically registers IDbContextFactory as Singleton)
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(connectionString));
 
@@ -74,9 +94,12 @@ try
     // Application Services
     builder.Services.AddScoped<QuizService>();
     builder.Services.AddSingleton<INotificationService, NotificationService>();
+    builder.Services.AddSingleton<ICacheService, CacheService>();
+    builder.Services.AddSingleton<IValidationService, ValidationService>();
+    builder.Services.AddSingleton<IErrorHandlingService, ErrorHandlingService>();
     builder.Services.AddScoped<IQuizBusinessService, QuizBusinessService>();
     builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
-    builder.Services.AddScoped<IStripePaymentService, StripePaymentService>();
+    builder.Services.AddScoped<IPaystackPaymentService, PaystackPaymentService>();
     builder.Services.AddScoped<IEmailService, EmailService>();
 
     // Identity & Authentication
@@ -92,7 +115,7 @@ try
         })
         .AddIdentityCookies(options =>
         {
-            options.ApplicationCookie.Configure(opts =>
+            options.ApplicationCookie?.Configure(opts =>
             {
                 opts.Cookie.HttpOnly = true;
                 opts.Cookie.SecurePolicy = CookieSecurePolicy.Always;
@@ -104,7 +127,7 @@ try
 
     builder.Services.AddIdentityCore<ApplicationUser>(options =>
         {
-            options.SignIn.RequireConfirmedAccount = true;
+            options.SignIn.RequireConfirmedAccount = false;
             options.Password.RequireDigit = true;
             options.Password.RequireLowercase = true;
             options.Password.RequireUppercase = true;
@@ -130,7 +153,16 @@ try
     {
         options.AddDefaultPolicy(policy =>
         {
-            policy.WithOrigins(builder.Configuration["AppSettings:BaseUrl"] ?? "https://localhost:5001")
+            var baseUrl = builder.Configuration["AppSettings:BaseUrl"];
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                baseUrl = "https://localhost:7233";
+            }
+
+            // Ensure URL is valid and doesn't end with /
+            baseUrl = baseUrl.TrimEnd('/');
+
+            policy.WithOrigins(baseUrl)
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
@@ -182,13 +214,13 @@ try
     app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains("ready") });
     app.MapHealthChecks("/health/live", new() { Predicate = _ => false });
 
-    // Stripe webhook endpoint
-    app.MapPost("/api/stripe/webhook", async (HttpContext context, IStripePaymentService stripeService) =>
+    // Paystack webhook endpoint
+    app.MapPost("/api/paystack/webhook", async (HttpContext context, IPaystackPaymentService paystackService) =>
     {
-        var json = await new StreamReader(context.Request.Body).ReadToEndAsync();
-        var signature = context.Request.Headers["Stripe-Signature"].ToString();
+        var payload = await new StreamReader(context.Request.Body).ReadToEndAsync();
+        var signature = context.Request.Headers["x-paystack-signature"].ToString();
 
-        var success = await stripeService.HandleWebhookAsync(json, signature);
+        var success = await paystackService.HandleWebhookAsync(payload, signature);
         return success ? Results.Ok() : Results.BadRequest();
     });
 

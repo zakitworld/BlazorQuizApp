@@ -1,0 +1,99 @@
+@page "/subscription/verify"
+@using BlazorQuizApp.Services
+@inject IPaystackPaymentService PaystackService
+@inject NavigationManager NavigationManager
+@inject INotificationService NotificationService
+
+<PageTitle>Verifying Payment - Quiz App</PageTitle>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6 text-center">
+            @if (isVerifying)
+            {
+                <div class="verification-loader p-5">
+                    <div class="spinner-border text-primary mb-4" style="width: 4rem; height: 4rem;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h2 class="fw-bold">Verifying Your Payment</h2>
+                    <p class="text-muted">Please wait while we confirm your transaction with Paystack...</p>
+                </div>
+            }
+            else if (isSuccess)
+            {
+                <div class="verification-success p-5 animate__animated animate__fadeIn">
+                    <i class="bi bi-check-circle-fill text-success mb-4" style="font-size: 5rem;"></i>
+                    <h2 class="fw-bold">Payment Confirmed!</h2>
+                    <p class="text-muted mb-4">Your subscription has been successfully activated.</p>
+                    <button class="btn btn-primary btn-lg px-5" @onclick='() => NavigationManager.NavigateTo("/subscription/success")'>
+                        Continue
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="verification-error p-5 animate__animated animate__shakeX">
+                    <i class="bi bi-x-circle-fill text-danger mb-4" style="font-size: 5rem;"></i>
+                    <h2 class="fw-bold">Verification Failed</h2>
+                    <p class="text-muted mb-4">@errorMessage</p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" @onclick='() => NavigationManager.NavigateTo("/pricing")'>
+                            Try Again
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick='() => NavigationManager.NavigateTo("/contact")'>
+                            Contact Support
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? reference { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? trxref { get; set; }
+
+    private bool isVerifying = true;
+    private bool isSuccess = false;
+    private string errorMessage = "We couldn't verify your payment. Please contact support if you believe this is an error.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var refToUse = reference ?? trxref;
+
+        if (string.IsNullOrEmpty(refToUse))
+        {
+            isVerifying = false;
+            errorMessage = "No payment reference found.";
+            return;
+        }
+
+        try
+        {
+            var result = await PaystackService.VerifyPaymentAsync(refToUse);
+            if (result)
+            {
+                isSuccess = true;
+                // Automatically redirect after a short delay
+                await Task.Delay(2000);
+                NavigationManager.NavigateTo("/subscription/success");
+            }
+            else
+            {
+                errorMessage = "Paystack could not verify this transaction reference.";
+            }
+        }
+        catch (Exception)
+        {
+            errorMessage = "An error occurred during payment verification. Please contact support.";
+        }
+        finally
+        {
+            isVerifying = false;
+        }
+    }
+}

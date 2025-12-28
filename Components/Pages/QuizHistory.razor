@@ -1,0 +1,378 @@
+@page "/quiz-history"
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@attribute [Authorize]
+@inject IQuizBusinessService QuizBusinessService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject INotificationService NotificationService
+
+<PageTitle>Quiz History</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-6">
+                <i class="bi bi-clock-history text-primary me-3"></i>
+                My Quiz History
+            </h1>
+            <p class="text-muted">View all your past quiz attempts and detailed results</p>
+        </div>
+    </div>
+
+    <LoadingSpinner IsLoading="@isLoading" Message="Loading quiz history..." />
+
+    @if (!isLoading && quizHistory.Any())
+    {
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" class="form-control" placeholder="Search by date or score..." 
+                           @bind="searchTerm" @bind:event="oninput" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="sortOrder">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="highest">Highest Score</option>
+                    <option value="lowest">Lowest Score</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="filterByScore">
+                    <option value="all">All Scores</option>
+                    <option value="excellent">Excellent (80%+)</option>
+                    <option value="good">Good (60-79%)</option>
+                    <option value="poor">Needs Improvement (&lt;60%)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            @foreach (var result in FilteredAndSortedHistory)
+            {
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0">
+                                    <i class="bi bi-calendar-check me-2"></i>
+                                    @result.CompletedAt.ToString("MMMM dd, yyyy 'at' HH:mm")
+                                </h5>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="badge @GetScoreBadgeClass(result.ScorePercentage) fs-6">
+                                    @result.ScorePercentage.ToString("F1")%
+                                </span>
+                                <a href="/quiz-result/@result.Id" class="btn btn-sm btn-info">
+                                    <i class="bi bi-eye me-1"></i>View Full Details
+                                </a>
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        @onclick="() => ToggleDetails(result.Id)">
+                                    <i class="bi @(expandedResults.Contains(result.Id) ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                                    @(expandedResults.Contains(result.Id) ? "Hide" : "Show") Quick View
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <div class="h4 mb-0 text-primary">@result.CorrectAnswers</div>
+                                        <small class="text-muted">Correct Answers</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <div class="h4 mb-0 text-secondary">@result.TotalQuestions</div>
+                                        <small class="text-muted">Total Questions</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <div class="h4 mb-0 text-info">@result.Duration.ToString(@"mm\:ss")</div>
+                                        <small class="text-muted">Duration</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <div class="h4 mb-0 @GetPerformanceTextClass(result.ScorePercentage)">
+                                            @GetPerformanceLabel(result.ScorePercentage)
+                                        </div>
+                                        <small class="text-muted">Performance</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (expandedResults.Contains(result.Id))
+                            {
+                                <div class="mt-4 pt-4 border-top">
+                                    <h6 class="mb-3">
+                                        <i class="bi bi-list-check me-2"></i>
+                                        Question Details
+                                    </h6>
+                                    @if (result.Answers != null && result.Answers.Any())
+                                    {
+                                        <div class="row g-3">
+                                            @foreach (var answer in result.Answers.OrderBy(a => a.QuestionId))
+                                            {
+                                                var question = resultQuestionsCache.ContainsKey(result.Id) && 
+                                                               resultQuestionsCache[result.Id].ContainsKey(answer.QuestionId)
+                                                    ? resultQuestionsCache[result.Id][answer.QuestionId]
+                                                    : null;
+                                                if (question != null)
+                                                {
+                                                    <div class="col-12">
+                                                        <div class="card @(answer.SelectedOptionId == question.CorrectOptionId ? "border-success" : "border-danger")">
+                                                            <div class="card-body">
+                                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                                    <h6 class="card-title mb-0">@question.QuestionText</h6>
+                                                                    @if (answer.SelectedOptionId == question.CorrectOptionId)
+                                                                    {
+                                                                        <span class="badge bg-success">
+                                                                            <i class="bi bi-check-circle me-1"></i>Correct
+                                                                        </span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="badge bg-danger">
+                                                                            <i class="bi bi-x-circle me-1"></i>Incorrect
+                                                                        </span>
+                                                                    }
+                                                                </div>
+                                                                <div class="mt-2">
+                                                                    @foreach (var option in question.Options)
+                                                                    {
+                                                                        var isSelected = option.Id == answer.SelectedOptionId;
+                                                                        var isCorrect = option.Id == question.CorrectOptionId;
+                                                                        <div class="mb-2 p-2 rounded @(isCorrect ? "bg-success bg-opacity-10" : isSelected ? "bg-danger bg-opacity-10" : "bg-light")">
+                                                                            <div class="d-flex align-items-center">
+                                                                                @if (isCorrect)
+                                                                                {
+                                                                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                                                                }
+                                                                                else if (isSelected)
+                                                                                {
+                                                                                    <i class="bi bi-x-circle-fill text-danger me-2"></i>
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    <i class="bi bi-circle me-2 text-muted"></i>
+                                                                                }
+                                                                                <span class="@(isSelected ? "fw-bold" : "")">@option.Text</span>
+                                                                                @if (isCorrect)
+                                                                                {
+                                                                                    <span class="badge bg-success ms-auto">Correct Answer</span>
+                                                                                }
+                                                                                @if (isSelected && !isCorrect)
+                                                                                {
+                                                                                    <span class="badge bg-danger ms-auto">Your Answer</span>
+                                                                                }
+                                                                            </div>
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-info-circle me-2"></i>
+                                            No detailed answer information available for this quiz.
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (!FilteredAndSortedHistory.Any() && quizHistory.Any())
+        {
+            <div class="alert alert-info mt-4">
+                <i class="bi bi-info-circle me-2"></i>
+                No quizzes match your current filters. Try adjusting your search criteria.
+            </div>
+        }
+    }
+    else if (!isLoading && !quizHistory.Any())
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-clipboard-x text-muted" style="font-size: 4rem;"></i>
+                        <h4 class="mt-3 text-muted">No Quiz History Yet</h4>
+                        <p class="text-muted">You haven't taken any quizzes yet. Start your first quiz to see your history here!</p>
+                        <a href="/quiz" class="btn btn-primary">
+                            <i class="bi bi-play-circle me-2"></i>
+                            Take Your First Quiz
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<QuizResult> quizHistory = new();
+    private bool isLoading = true;
+    private string currentUserId = string.Empty;
+    private string searchTerm = string.Empty;
+    private string sortOrder = "newest";
+    private string filterByScore = "all";
+    private HashSet<int> expandedResults = new();
+    private Dictionary<int, QuizQuestion> questionCache = new();
+    private Dictionary<int, Dictionary<int, QuizQuestion>> resultQuestionsCache = new();
+
+    private IEnumerable<QuizResult> FilteredAndSortedHistory
+    {
+        get
+        {
+            var filtered = quizHistory.AsEnumerable();
+
+            // Filter by search term
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                filtered = filtered.Where(r =>
+                    r.CompletedAt.ToString("MMMM dd, yyyy").Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    r.ScorePercentage.ToString().Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    r.CorrectAnswers.ToString().Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                );
+            }
+
+            // Filter by score
+            filtered = filterByScore switch
+            {
+                "excellent" => filtered.Where(r => r.ScorePercentage >= 80),
+                "good" => filtered.Where(r => r.ScorePercentage >= 60 && r.ScorePercentage < 80),
+                "poor" => filtered.Where(r => r.ScorePercentage < 60),
+                _ => filtered
+            };
+
+            // Sort
+            filtered = sortOrder switch
+            {
+                "oldest" => filtered.OrderBy(r => r.CompletedAt),
+                "highest" => filtered.OrderByDescending(r => r.ScorePercentage),
+                "lowest" => filtered.OrderBy(r => r.ScorePercentage),
+                _ => filtered.OrderByDescending(r => r.CompletedAt) // newest
+            };
+
+            return filtered;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isLoading = true;
+            
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+                if (!string.IsNullOrEmpty(currentUserId))
+                {
+                    quizHistory = await QuizBusinessService.GetUserQuizHistoryAsync(currentUserId);
+                    
+                    // Pre-load all questions for all results
+                    await LoadAllQuestionsForResults();
+                }
+            }
+        }
+        catch (Exception)
+        {
+            NotificationService.ShowError("Failed to load quiz history. Please try again later.");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadAllQuestionsForResults()
+    {
+        foreach (var result in quizHistory)
+        {
+            if (result.Answers != null && result.Answers.Any())
+            {
+                var questionsDict = new Dictionary<int, QuizQuestion>();
+                foreach (var answer in result.Answers)
+                {
+                    if (!questionCache.ContainsKey(answer.QuestionId))
+                    {
+                        try
+                        {
+                            var question = await QuizBusinessService.GetQuestionByIdAsync(answer.QuestionId);
+                            if (question != null)
+                            {
+                                questionCache[answer.QuestionId] = question;
+                                questionsDict[answer.QuestionId] = question;
+                            }
+                        }
+                        catch
+                        {
+                            // Skip if question not found
+                        }
+                    }
+                    else
+                    {
+                        questionsDict[answer.QuestionId] = questionCache[answer.QuestionId];
+                    }
+                }
+                resultQuestionsCache[result.Id] = questionsDict;
+            }
+        }
+    }
+
+    private void ToggleDetails(int resultId)
+    {
+        if (expandedResults.Contains(resultId))
+        {
+            expandedResults.Remove(resultId);
+        }
+        else
+        {
+            expandedResults.Add(resultId);
+        }
+    }
+
+
+    private string GetScoreBadgeClass(double score)
+    {
+        return score >= 80 ? "bg-success" :
+               score >= 60 ? "bg-warning" :
+               "bg-danger";
+    }
+
+    private string GetPerformanceLabel(double score)
+    {
+        return score >= 80 ? "Excellent" :
+               score >= 60 ? "Good" :
+               "Needs Improvement";
+    }
+
+    private string GetPerformanceTextClass(double score)
+    {
+        return score >= 80 ? "text-success" :
+               score >= 60 ? "text-warning" :
+               "text-danger";
+    }
+}
+

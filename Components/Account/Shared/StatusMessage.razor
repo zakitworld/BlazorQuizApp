@@ -1,0 +1,13 @@
+@if (!string.IsNullOrEmpty(Message))
+{
+    var alertFlags = Message.StartsWith("Error", StringComparison.OrdinalIgnoreCase) ? "danger" : "success";
+    <div class="alert alert-@alertFlags alert-dismissible fade show" role="alert" style="border-radius: 12px; margin-bottom: 1.5rem;">
+        @Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string? Message { get; set; }
+}

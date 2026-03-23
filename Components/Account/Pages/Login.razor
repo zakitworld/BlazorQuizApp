@@ -1,0 +1,99 @@
+@page "/Account/Login"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@using BlazorQuizApp.Components.Account.Shared
+
+@inject IHttpContextAccessor HttpContextAccessor
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<Login> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Log in | Blazor Quiz App</PageTitle>
+
+<div class="auth-bg">
+    <div class="auth-card">
+        <div class="auth-logo">Q</div>
+        <h1 class="auth-title">Welcome Back</h1>
+        <p class="auth-subtitle">Log in to continue your quiz journey</p>
+
+        <StatusMessage Message="@errorMessage" />
+
+        <form action="Account/PerformLogin?returnUrl=@ReturnUrl" method="post">
+            <AntiforgeryToken />
+            
+            <div class="form-group position-relative mb-3">
+                <input type="email" name="email" class="form-control auth-input" autocomplete="username" required placeholder="name@example.com" />
+                <i class="bi bi-envelope auth-input-icon"></i>
+            </div>
+
+            <div class="form-group position-relative mb-3">
+                <input type="password" name="password" class="form-control auth-input" autocomplete="current-password" required placeholder="password" />
+                <i class="bi bi-lock auth-input-icon"></i>
+            </div>
+
+            <div class="mb-4 d-flex justify-content-between align-items-center">
+                <div class="form-check">
+                    <label class="form-check-label small text-secondary">
+                        <input type="checkbox" name="rememberMe" value="true" class="form-check-input darker-border-checkbox" />
+                        Remember me
+                    </label>
+                </div>
+                <div class="small">
+                    <a href="Account/ForgotPassword" class="text-decoration-none">Forgot password?</a>
+                </div>
+            </div>
+
+            <button type="submit" class="w-100 btn btn-lg btn-primary mb-3">Log in</button>
+
+            <div class="text-center mt-3">
+                <p class="mb-0 text-secondary small">Don't have an account? 
+                    <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))" class="fw-bold">Sign Up</a>
+                </p>
+            </div>
+        </form>
+    </div>
+</div>
+
+@code {
+    private string? errorMessage;
+    private HttpContext? HttpContext => HttpContextAccessor.HttpContext;
+
+    [SupplyParameterFromQuery]
+    private string? Error { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Error == "InvalidLoginAttempt")
+        {
+            errorMessage = "Error: Invalid login attempt.";
+        }
+
+        if (HttpContext != null && HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            // Clear the existing external cookie to ensure a clean login process
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [Display(Name = "Remember me?")]
+        public bool RememberMe { get; set; }
+    }
+}

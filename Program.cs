@@ -1,10 +1,9 @@
 using BlazorQuizApp.Components;
-using BlazorQuizApp.Components.Account;
-using BlazorQuizApp.Configuration;
-using BlazorQuizApp.Data;
 using BlazorQuizApp.Middleware;
 using BlazorQuizApp.Models;
 using BlazorQuizApp.Services;
+using BlazorQuizApp.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -56,16 +55,17 @@ try
     builder.Services.AddRazorComponents()
         .AddInteractiveServerComponents();
 
-    // Configure strongly-typed settings
-    builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
-    builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
-    builder.Services.Configure<PaystackSettings>(builder.Configuration.GetSection("Paystack"));
+    builder.Services.AddHttpContextAccessor();
 
     // Rate Limiting Configuration
     builder.Services.AddMemoryCache();
     builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
     builder.Services.AddInMemoryRateLimiting();
     builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
+    // Bind configuration sections to model classes
+    builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
+    builder.Services.Configure<PaystackSettings>(builder.Configuration.GetSection("Paystack"));
 
     // Response Compression
     builder.Services.AddResponseCompression(options =>
@@ -75,11 +75,6 @@ try
 
     // Memory Cache for SmartASP.NET (no Redis available)
     builder.Services.AddMemoryCache();
-
-    // Health checks - register custom health check that uses factory
-    builder.Services.AddTransient<ApplicationDbContextHealthCheck>();
-    builder.Services.AddHealthChecks()
-        .AddCheck<ApplicationDbContextHealthCheck>("dbcontext");
 
     // Database Context for Identity and scoped services
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -176,6 +171,10 @@ try
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.Cookie.SameSite = SameSiteMode.Strict;
     });
+    
+    // Health Checks
+    builder.Services.AddHealthChecks()
+        .AddDbContextCheck<ApplicationDbContext>(name: "database", tags: new[] { "ready", "db" });
 
     var app = builder.Build();
 
@@ -197,7 +196,7 @@ try
     app.UseIpRateLimiting();
 
     // Response Compression
-    app.UseResponseCompression();
+    // app.UseResponseCompression();
 
     app.UseHttpsRedirection();
 

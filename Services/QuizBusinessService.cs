@@ -1,4 +1,3 @@
-using BlazorQuizApp.Data;
 using BlazorQuizApp.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -262,14 +261,21 @@ namespace BlazorQuizApp.Services
             }
         }
 
-        public async Task<QuizResult> SubmitQuizAsync(List<QuizAnswer> answers, string userId)
+        public async Task<QuizResult> SubmitQuizAsync(List<QuizAnswer> answers, string userId, TimeSpan duration)
         {
             try
             {
                 if (!await ValidateQuizSubmissionAsync(answers))
                 {
+                    _logger.LogWarning("Quiz submission validation failed for user {UserId}", userId);
                     throw new ValidationException("Invalid quiz submission");
                 }
+
+                _logger.LogInformation("Submitting quiz for user {UserId}", userId);
+
+                // Get user name from database
+                var user = await _context.Users.FindAsync(userId);
+                var userName = user?.Email ?? "Anonymous";
 
                 var questions = await _context.QuizQuestions
                     .Include(q => q.Options)
@@ -285,38 +291,24 @@ namespace BlazorQuizApp.Services
                     }
                 }
 
-                // Get user name from database
-                var user = await _context.Users.FindAsync(userId);
-                var userName = user?.Email ?? "Anonymous";
-
-                // Save answers first
-                _context.QuizAnswers.AddRange(answers);
-                await _context.SaveChangesAsync();
-
                 var result = new QuizResult
                 {
                     UserId = userId,
                     UserName = userName,
                     TotalQuestions = answers.Count,
                     CorrectAnswers = correctAnswers,
-                    CompletedAt = DateTime.UtcNow
+                    CompletedAt = DateTime.UtcNow,
+                    Duration = duration,
+                    Answers = answers
                 };
 
                 _context.QuizResults.Add(result);
                 await _context.SaveChangesAsync();
 
-                // Link answers to the quiz result
-                foreach (var answer in answers)
-                {
-                    answer.QuizResultId = result.Id;
-                }
-                _context.QuizAnswers.UpdateRange(answers);
-                await _context.SaveChangesAsync();
-
                 // Invalidate cache
-                _cacheService?.Clear(); // Clear leaderboard and other caches
+                _cacheService?.Clear();
 
-                _logger.LogInformation("Quiz submitted for user {UserId} with score {Score}%", 
+                _logger.LogInformation("Quiz submitted successfully for user {UserId} with score {Score}%", 
                     userId, result.ScorePercentage);
 
                 return result;
@@ -327,7 +319,7 @@ namespace BlazorQuizApp.Services
                 throw;
             }
         }
-
+    
         public async Task<QuizResult?> GetQuizResultByIdAsync(int resultId)
         {
             try
@@ -418,6 +410,12 @@ namespace BlazorQuizApp.Services
                     {
                         _logger.LogWarning("Quiz submission validation failed: Invalid question ID {QuestionId}", answer.QuestionId);
                         return false;
+                    }
+
+                    // Allow -1 for unanswered questions
+                    if (answer.SelectedOptionId == -1)
+                    {
+                        continue;
                     }
 
                     var question = questions.First(q => q.Id == answer.QuestionId);

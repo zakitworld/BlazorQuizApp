@@ -12,6 +12,7 @@
 @inject NavigationManager NavigationManager
 @inject IOptions<AppSettings> AppSettings
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<Quiz> Logger
 @attribute [Authorize]
 
 <h1>Quiz</h1>
@@ -380,11 +381,7 @@ else if (!isLoading && !questions.Any())
             
             try
             {
-                quizResult = await QuizBusinessService.SubmitQuizAsync(userAnswers, currentUserId);
-                if (quizResult != null)
-                {
-                    quizResult.Duration = duration;
-                }
+                quizResult = await QuizBusinessService.SubmitQuizAsync(userAnswers, currentUserId, duration);
                 
                 // Track quiz usage for subscription limits
                 await SubscriptionService.IncrementQuizUsageAsync(currentUserId);
@@ -392,7 +389,7 @@ else if (!isLoading && !questions.Any())
             catch (Exception dbEx)
             {
                 // Fallback: create result locally if database fails
-                Console.WriteLine($"Database error, creating local result: {dbEx.Message}");
+                Logger.LogWarning($"Database error, creating local result: {dbEx.Message}");
                 
                 var correctAnswers = 0;
                 foreach (var answer in userAnswers)

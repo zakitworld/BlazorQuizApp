@@ -9,5 +9,7 @@ namespace BlazorQuizApp.Models
         [Required]
         [StringLength(500)]
         public string Text { get; set; } = string.Empty;
+
+        public int QuizQuestionId { get; set; }
     }
 }

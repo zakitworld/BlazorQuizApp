@@ -1,0 +1,105 @@
+@page "/Account/Register"
+
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@using BlazorQuizApp.Components.Account.Shared
+
+@inject IHttpContextAccessor HttpContextAccessor
+@inject UserManager<ApplicationUser> UserManager
+@inject IUserStore<ApplicationUser> UserStore
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IEmailSender<ApplicationUser> EmailSender
+@inject ILogger<Register> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Sign Up | Blazor Quiz App</PageTitle>
+
+<div class="auth-bg">
+    <div class="auth-card">
+        <div class="auth-logo">Q</div>
+        <h1 class="auth-title">Create Account</h1>
+        <p class="auth-subtitle">Join us and start quizzing!</p>
+
+        <StatusMessage Message="@errorMessage" />
+
+        <form action="Account/PerformRegister?returnUrl=@ReturnUrl" method="post">
+            <AntiforgeryToken />
+
+            <div class="form-group position-relative mb-3">
+                <input type="text" name="fullName" class="form-control auth-input" required placeholder="Full Name" />
+                <i class="bi bi-person auth-input-icon"></i>
+            </div>
+
+            <div class="form-group position-relative mb-3">
+                <input type="email" name="email" class="form-control auth-input" autocomplete="username" required placeholder="name@example.com" />
+                <i class="bi bi-envelope auth-input-icon"></i>
+            </div>
+
+            <div class="form-group position-relative mb-3">
+                <input type="password" name="password" class="form-control auth-input" autocomplete="new-password" required placeholder="password" />
+                <i class="bi bi-lock auth-input-icon"></i>
+            </div>
+
+            <div class="form-group position-relative mb-4">
+                <input type="password" name="confirmPassword" class="form-control auth-input" autocomplete="new-password" required placeholder="confirm password" />
+                <i class="bi bi-shield-check auth-input-icon"></i>
+            </div>
+
+            <button type="submit" class="w-100 btn btn-lg btn-primary mb-3">Sign Up</button>
+
+            <div class="text-center mt-3">
+                <p class="mb-0 text-secondary small">Already have an account? 
+                    <a href="Account/Login" class="fw-bold">Log In</a>
+                </p>
+            </div>
+        </form>
+    </div>
+</div>
+
+@code {
+    private string? errorMessage;
+    private HttpContext? HttpContext => HttpContextAccessor.HttpContext;
+
+    [SupplyParameterFromQuery]
+    private string? Error { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(Error))
+        {
+            errorMessage = Error;
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [Display(Name = "Full Name")]
+        public string FullName { get; set; } = "";
+
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Email")]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [DataType(DataType.Password)]
+        [Display(Name = "Password")]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm password")]
+        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+}

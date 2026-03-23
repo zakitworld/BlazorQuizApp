@@ -1,0 +1,121 @@
+@page "/Account/Manage"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@using BlazorQuizApp.Components.Account.Shared
+
+@inject UserManager<ApplicationUser> UserManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<Index> Logger
+
+<PageTitle>Profile | Blazor Quiz App</PageTitle>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0" style="border-radius: 16px;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; font-size: 1.5rem; font-weight: 700;">
+                            @(user?.FullName?[0].ToString().ToUpper() ?? "?")
+                        </div>
+                        <div class="ms-3">
+                            <h2 class="h4 mb-0">@user?.FullName</h2>
+                            <p class="text-secondary mb-0">@user?.Email</p>
+                        </div>
+                    </div>
+
+                    <StatusMessage Message="@statusMessage" />
+
+                    <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" FormName="profile" Enhance>
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Email</label>
+                            <input type="text" value="@user?.Email" class="form-control" disabled />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="full-name" class="form-label fw-bold">Full Name</label>
+                            <InputText @bind-Value="Input.FullName" class="form-control" id="full-name" placeholder="Please enter your full name." />
+                            <ValidationMessage For="() => Input.FullName" class="text-danger small" />
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="phone-number" class="form-label fw-bold">Phone Number</label>
+                            <InputText @bind-Value="Input.PhoneNumber" class="form-control" id="phone-number" placeholder="Please enter your phone number." />
+                            <ValidationMessage For="() => Input.PhoneNumber" class="text-danger small" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Save Changes</button>
+                    </EditForm>
+
+                    <hr class="my-4" />
+
+                    <div class="d-grid gap-2">
+                        <a href="Account/Manage/ChangePassword" class="btn btn-outline-secondary">Change Password</a>
+                        <a href="Account/Manage/TwoFactorAuthentication" class="btn btn-outline-secondary">Two-factor Authentication</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ApplicationUser user = default!;
+    private string? statusMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        
+        if (string.IsNullOrEmpty(Input.FullName))
+        {
+            Input.FullName = user.FullName ?? "";
+            Input.PhoneNumber = user.PhoneNumber ?? "";
+        }
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        if (Input.FullName != user.FullName)
+        {
+            user.FullName = Input.FullName;
+        }
+
+        if (Input.PhoneNumber != user.PhoneNumber)
+        {
+            user.PhoneNumber = Input.PhoneNumber;
+        }
+
+        var updateResult = await UserManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            statusMessage = $"Error: {string.Join(" ", updateResult.Errors.Select(e => e.Description))}";
+            return;
+        }
+
+        statusMessage = "Your profile has been updated";
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [Display(Name = "Full Name")]
+        public string? FullName { get; set; }
+
+        [Phone]
+        [Display(Name = "Phone number")]
+        public string? PhoneNumber { get; set; }
+    }
+}

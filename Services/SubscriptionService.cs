@@ -1,4 +1,3 @@
-using BlazorQuizApp.Data;
 using BlazorQuizApp.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -92,7 +91,7 @@ namespace BlazorQuizApp.Services
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var now = DateTime.UtcNow;
 
-                var usage = await context.UsageTracking
+                var usage = await context.UsageTrackings
                     .FirstOrDefaultAsync(u => u.UserId == userId &&
                                             u.Month == now.Month &&
                                             u.Year == now.Year);
@@ -106,7 +105,7 @@ namespace BlazorQuizApp.Services
                         Year = now.Year,
                         QuizzesTaken = 1
                     };
-                    context.UsageTracking.Add(usage);
+                    context.UsageTrackings.Add(usage);
                 }
                 else
                 {
@@ -130,7 +129,7 @@ namespace BlazorQuizApp.Services
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var now = DateTime.UtcNow;
 
-                var usage = await context.UsageTracking
+                var usage = await context.UsageTrackings
                     .FirstOrDefaultAsync(u => u.UserId == userId &&
                                             u.Month == now.Month &&
                                             u.Year == now.Year);

@@ -29,7 +29,7 @@
 
     {
             <div class="row g-4 mb-4">
-                <div class="col-md-3">
+                <div class="col-6 col-md-3">
                     <div class="card bg-primary text-white">
                         <div class="card-body text-center">
                             <i class="bi bi-trophy-fill display-4 mb-2"></i>
@@ -38,7 +38,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-6 col-md-3">
                     <div class="card bg-success text-white">
                         <div class="card-body text-center">
                             <i class="bi bi-percent display-4 mb-2"></i>
@@ -47,7 +47,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-6 col-md-3">
                     <div class="card bg-info text-white">
                         <div class="card-body text-center">
                             <i class="bi bi-star-fill display-4 mb-2"></i>
@@ -56,12 +56,12 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-6 col-md-3">
                     <div class="card bg-warning text-dark">
                         <div class="card-body text-center">
-                            <i class="bi bi-clock-fill display-4 mb-2"></i>
-                            <h3 class="card-title">@totalTimeSpent</h3>
-                            <p class="card-text">Time Spent</p>
+                            <i class="bi bi-lightning-charge-fill display-4 mb-2"></i>
+                            <h3 class="card-title">@totalPoints</h3>
+                            <p class="card-text">Total Points</p>
                         </div>
                     </div>
                 </div>
@@ -128,6 +128,71 @@
                         </div>
                     </div>
 
+                    @if (categoryStats.Any())
+                    {
+                        <div class="row g-4 mt-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">
+                                            <i class="bi bi-bar-chart-fill me-2"></i>
+                                            Performance by Category
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Category</th>
+                                                        <th class="text-center">Quizzes</th>
+                                                        <th>Best Score</th>
+                                                        <th>Average Score</th>
+                                                        <th class="text-center">Points</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var stat in categoryStats)
+                                                    {
+                                                        <tr>
+                                                            <td>
+                                                                <span class="badge bg-primary me-1">@stat.Category</span>
+                                                            </td>
+                                                            <td class="text-center">@stat.QuizzesTaken</td>
+                                                            <td>
+                                                                <div class="d-flex align-items-center gap-2">
+                                                                    <div class="progress flex-grow-1" style="height:6px;">
+                                                                        <div class="progress-bar @GetScoreBadgeClass(stat.BestScore)"
+                                                                             style="width:@(stat.BestScore)%"></div>
+                                                                    </div>
+                                                                    <span class="text-nowrap small fw-semibold">@stat.BestScore.ToString("F1")%</span>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="d-flex align-items-center gap-2">
+                                                                    <div class="progress flex-grow-1" style="height:6px;">
+                                                                        <div class="progress-bar @GetScoreBadgeClass(stat.AverageScore)"
+                                                                             style="width:@(stat.AverageScore)%"></div>
+                                                                    </div>
+                                                                    <span class="text-nowrap small">@stat.AverageScore.ToString("F1")%</span>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="badge bg-warning text-dark">
+                                                                    <i class="bi bi-star-fill me-1"></i>@stat.TotalPoints
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
                     <div class="row g-4 mt-4">
                         <div class="col-12">
                             <div class="card">
@@ -143,30 +208,41 @@
                                             <thead>
                                                 <tr>
                                                     <th>Date</th>
+                                                    <th>Category</th>
                                                     <th>Score</th>
-                                                    <th>Correct Answers</th>
-                                                    <th>Total Questions</th>
+                                                    <th>Correct</th>
+                                                    <th>Questions</th>
                                                     <th>Duration</th>
-                                                    <th>Performance</th>
+                                                    <th>Points</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                        @foreach (var result in userResults.OrderByDescending(r => r.CompletedAt).Take(10))
-
-                                        {
-                                                        <tr>
-                                                            <td>@result.CompletedAt.ToString("MMM dd, yyyy HH:mm")</td>
-                                                            <td>
-                                                                <span class="badge @GetScoreBadgeClass(result.ScorePercentage)">
-                                                        @result.ScorePercentage.ToString("F1")%
-                                                                </span>
-                                                            </td>
-                                                            <td>@result.CorrectAnswers</td>
-                                                            <td>@result.TotalQuestions</td>
-                                                            <td>@result.Duration.ToString(@"mm\:ss")</td>
-                                                            <td>@GetPerformanceLabel(result.ScorePercentage)</td>
-                                                        </tr>
-                                        }
+                                                @foreach (var result in userResults.OrderByDescending(r => r.CompletedAt).Take(10))
+                                                {
+                                                    <tr>
+                                                        <td>@result.CompletedAt.ToString("MMM dd, yyyy HH:mm")</td>
+                                                        <td>
+                                                            @if (!string.IsNullOrEmpty(result.Category))
+                                                            {
+                                                                <span class="badge bg-primary">@result.Category</span>
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge @GetScoreBadgeClass(result.ScorePercentage)">
+                                                                @result.ScorePercentage.ToString("F1")%
+                                                            </span>
+                                                        </td>
+                                                        <td>@result.CorrectAnswers</td>
+                                                        <td>@result.TotalQuestions</td>
+                                                        <td>@result.Duration.ToString(@"mm\:ss")</td>
+                                                        <td>
+                                                            @if (result.Score > 0)
+                                                            {
+                                                                <span class="badge bg-warning text-dark">@result.Score pts</span>
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
                                             </tbody>
                                         </table>
                                     </div>
@@ -200,6 +276,7 @@
 
 @code {
     private List<QuizResult> userResults = new();
+    private List<CategoryStat> categoryStats = [];
 
     private bool isLoading = true;
 
@@ -207,62 +284,36 @@
 
     private bool chartRendered = false;
 
-
-
     private double averageScore => userResults.Any() ? userResults.Average(r => r.ScorePercentage) : 0;
-
     private double bestScore => userResults.Any() ? userResults.Max(r => r.ScorePercentage) : 0;
+    private int totalPoints => userResults.Sum(r => r.Score);
 
     private string totalTimeSpent => userResults.Any()
-
         ? TimeSpan.FromTicks(userResults.Sum(r => r.Duration.Ticks)).ToString(@"hh\:mm\:ss")
-
         : "00:00:00";
 
-
-
     private int excellentCount => userResults.Count(r => r.ScorePercentage >= 80);
-
     private int goodCount => userResults.Count(r => r.ScorePercentage >= 60 && r.ScorePercentage < 80);
-
     private int poorCount => userResults.Count(r => r.ScorePercentage < 60);
 
-
-
     private double excellentPercentage => userResults.Any() ? (double)excellentCount / userResults.Count * 100 : 0;
-
     private double goodPercentage => userResults.Any() ? (double)goodCount / userResults.Count * 100 : 0;
-
     private double poorPercentage => userResults.Any() ? (double)poorCount / userResults.Count * 100 : 0;
 
-
-
     protected override async Task OnInitializedAsync()
-
     {
-
         try
-
         {
-
             isLoading = true;
-
-
-
-            // Get current user
 
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
 
             if (authState.User.Identity?.IsAuthenticated == true)
-
             {
-
                 currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-
                 userResults = await QuizBusinessService.GetUserQuizHistoryAsync(currentUserId);
-
+                categoryStats = await QuizBusinessService.GetCategoryStatsAsync(currentUserId);
             }
-
         }
 
         catch (Exception)

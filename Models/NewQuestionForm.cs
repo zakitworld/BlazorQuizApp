@@ -16,7 +16,10 @@ namespace BlazorQuizApp.Models
         [StringLength(50)]
         public string Difficulty { get; set; } = "Medium";
         
-        public List<string> OptionTexts { get; set; } = new List<string> { "", "", "", "" };
+        [StringLength(2000)]
+        public string? Explanation { get; set; }
+
+        public List<string> OptionTexts { get; set; } = ["", "", "", ""];
         public int CorrectOptionIndex { get; set; } = 0;
     }
 }

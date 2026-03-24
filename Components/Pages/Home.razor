@@ -43,6 +43,75 @@
     </section>
 
     <div class="container pb-5">
+        <div class="section-header text-center mb-4 animate__animated animate__fadeIn">
+            <span class="badge bg-primary-soft text-primary px-3 py-2 mb-3 rounded-pill">TOPICS</span>
+            <h2 class="display-5 fw-bold">Choose a Subject</h2>
+            <p class="text-muted">Pick a topic and test your knowledge, or take the full mixed quiz.</p>
+        </div>
+
+        <div class="row g-3 mb-5 justify-content-center">
+            <div class="col-6 col-md-4 col-lg-2">
+                <a href="/quiz" class="topic-card text-decoration-none d-block p-3 text-center h-100">
+                    <div class="topic-icon mb-2">🎯</div>
+                    <div class="fw-semibold">All Topics</div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <a href="/quiz?category=C%23" class="topic-card text-decoration-none d-block p-3 text-center h-100">
+                    <div class="topic-icon mb-2">💻</div>
+                    <div class="fw-semibold">C#</div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <a href="/quiz?category=ASP.NET%20Core" class="topic-card text-decoration-none d-block p-3 text-center h-100">
+                    <div class="topic-icon mb-2">🌐</div>
+                    <div class="fw-semibold">ASP.NET Core</div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <a href="/quiz?category=Blazor" class="topic-card text-decoration-none d-block p-3 text-center h-100">
+                    <div class="topic-icon mb-2">🔥</div>
+                    <div class="fw-semibold">Blazor</div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <a href="/quiz?category=JavaScript" class="topic-card text-decoration-none d-block p-3 text-center h-100">
+                    <div class="topic-icon mb-2">⚡</div>
+                    <div class="fw-semibold">JavaScript</div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <a href="/quiz?category=Web%20Development" class="topic-card text-decoration-none d-block p-3 text-center h-100">
+                    <div class="topic-icon mb-2">🕸️</div>
+                    <div class="fw-semibold">Web Development</div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <a href="/quiz?category=Database" class="topic-card text-decoration-none d-block p-3 text-center h-100">
+                    <div class="topic-icon mb-2">🗄️</div>
+                    <div class="fw-semibold">Database</div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <a href="/quiz?category=Entity%20Framework" class="topic-card text-decoration-none d-block p-3 text-center h-100">
+                    <div class="topic-icon mb-2">🗃️</div>
+                    <div class="fw-semibold">Entity Framework</div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <a href="/quiz?category=Programming%20Concepts" class="topic-card text-decoration-none d-block p-3 text-center h-100">
+                    <div class="topic-icon mb-2">📚</div>
+                    <div class="fw-semibold">Programming Concepts</div>
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+                <a href="/quiz?category=General" class="topic-card text-decoration-none d-block p-3 text-center h-100">
+                    <div class="topic-icon mb-2">🧠</div>
+                    <div class="fw-semibold">General</div>
+                </a>
+            </div>
+        </div>
+
         <div class="section-header text-center mb-5 animate__animated animate__fadeIn">
             <span class="badge bg-primary-soft text-primary px-3 py-2 mb-3 rounded-pill">FEATURES</span>
             <h2 class="display-5 fw-bold">Everything You Need</h2>
@@ -231,5 +300,25 @@
         justify-content: center;
         font-size: 1.8rem;
         margin: 0 auto;
+    }
+
+    .topic-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 2px solid rgba(13, 110, 253, 0.1);
+        color: #333;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .topic-card:hover {
+        border-color: #0d6efd;
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(13, 110, 253, 0.15);
+        color: #0d6efd;
+    }
+
+    .topic-icon {
+        font-size: 2rem;
     }
 </style>

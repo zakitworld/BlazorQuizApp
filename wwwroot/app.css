@@ -2,6 +2,21 @@ html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+/* Offset content below the fixed navbar (Bootstrap default navbar height ~58px) */
+body {
+    padding-top: 64px;
+}
+
+.main-content {
+    padding: 1.5rem 1rem;
+}
+
+@media (min-width: 768px) {
+    .main-content {
+        padding: 2rem 2.5rem;
+    }
+}
+
 a, .btn-link {
     color: #006bb7;
 }
@@ -16,12 +31,27 @@ a, .btn-link {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
-.content {
-    padding-top: 1.1rem;
-}
-
 h1:focus {
     outline: none;
+}
+
+/* Active nav link highlight in dark navbar */
+.navbar-dark .navbar-nav .nav-link.active {
+    color: #fff;
+    font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+}
+
+/* Force navbar links, buttons, and brand to flex so icon and text are always on the same center line */
+.navbar .nav-link,
+.navbar .btn-link,
+.navbar .btn,
+.navbar-brand {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
 .valid.modified:not([type=checkbox]) {
@@ -90,6 +120,7 @@ h1:focus {
     align-items: stretch;
     position: relative;
     animation: fadeInCard 0.8s cubic-bezier(.39,.575,.565,1) both;
+    -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
 }
 

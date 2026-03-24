@@ -1,3 +1,7 @@
+window.focusElement = (element) => {
+    if (element) element.focus();
+};
+
 // Chart.js rendering function for performance chart
 window.renderPerformanceChart = (labels, scores) => {
     try {

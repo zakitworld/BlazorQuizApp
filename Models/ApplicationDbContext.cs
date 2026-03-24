@@ -26,7 +26,7 @@ namespace BlazorQuizApp.Models
             builder.Entity<QuizQuestion>()
                 .HasMany(q => q.Options)
                 .WithOne()
-                .HasForeignKey("QuizQuestionId")
+                .HasForeignKey(o => o.QuizQuestionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Configure QuizResult relationship with User if needed
@@ -36,6 +36,13 @@ namespace BlazorQuizApp.Models
                 .HasForeignKey(r => r.UserId)
                 .IsRequired();
                 
+            // Configure QuizResult -> QuizAnswer relationship
+            builder.Entity<QuizResult>()
+                .HasMany(r => r.Answers)
+                .WithOne()
+                .HasForeignKey(a => a.QuizResultId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Configure Subscription relationship with User if needed
             builder.Entity<Subscription>()
                 .HasIndex(s => s.UserId)

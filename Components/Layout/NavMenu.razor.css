@@ -25,12 +25,12 @@
 }
 
 .bi {
-    display: inline-block;
-    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 1.25rem;
     height: 1.25rem;
-    margin-right: 0.75rem;
-    top: -1px;
+    margin-right: 0.5rem;
     background-size: cover;
 }
 
@@ -90,10 +90,11 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white' class='bi bi-arrow-bar-left' viewBox='0 0 16 16'%3E%3Cpath d='M12.5 15a.5.5 0 0 1-.5-.5v-13a.5.5 0 0 1 1 0v13a.5.5 0 0 1-.5.5ZM10 8a.5.5 0 0 1-.5.5H3.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L3.707 7.5H9.5a.5.5 0 0 1 .5.5Z'/%3E%3C/svg%3E");
 }
 
-.nav-item {
-    font-size: 0.9rem;
-    padding-bottom: 0.5rem;
-}
+@media (max-width: 767.98px) {
+    .nav-item {
+        font-size: 0.9rem;
+        padding-bottom: 0.5rem;
+    }
 
     .nav-item:first-of-type {
         padding-top: 1rem;
@@ -102,18 +103,53 @@
     .nav-item:last-of-type {
         padding-bottom: 1rem;
     }
+}
 
-    .nav-item ::deep .nav-link {
+@media (min-width: 768px) {
+    .nav-item {
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+    }
+}
+
+    .nav-item ::deep .nav-link,
+    .nav-item.dropdown ::deep .nav-link {
         color: #d7d7d7;
         background: none;
         border: none;
-        border-radius: 4px;
-        height: 3rem;
+        border-radius: 6px;
+        height: 2.5rem;
         display: flex;
         align-items: center;
-        line-height: 3rem;
-        width: 100%;
+        padding: 0 1rem;
+        transition: all 0.2s ease;
     }
+
+.nav-item ::deep .dropdown-menu {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 12px;
+    background-color: #1e2125;
+}
+
+.nav-item ::deep .dropdown-item {
+    border-radius: 8px;
+    color: #e2e2e2;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.nav-item ::deep .dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    transform: translateX(3px);
+}
+
+.nav-item ::deep .dropdown-divider {
+    margin: 0.5rem 0;
+    opacity: 0.1;
+}
 
 .nav-item ::deep a.active {
     background-color: rgba(255,255,255,0.37);

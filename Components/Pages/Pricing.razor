@@ -3,8 +3,11 @@
 @using BlazorQuizApp.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using BlazorQuizApp.Configuration
+@using Microsoft.Extensions.Options
 @inject IPaystackPaymentService PaystackService
 @inject ISubscriptionService SubscriptionService
+@inject IOptions<PaystackSettings> PaystackOptions
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject INotificationService NotificationService
@@ -343,8 +346,14 @@
     {
         if (string.IsNullOrEmpty(currentUserId))
         {
-            NotificationService.ShowWarning("Please log in to subscribe");
+            NotificationService.ShowWarning("Please log in to subscribe.");
             NavigationManager.NavigateTo("/Account/Login");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(PaystackOptions.Value.SecretKey))
+        {
+            NotificationService.ShowInfo("Payment processing is not yet configured. Please contact support to upgrade your plan.");
             return;
         }
 

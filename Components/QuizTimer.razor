@@ -9,11 +9,11 @@
     @if (ShowProgressBar)
     {
         <div class="progress mt-2" style="height: 4px;">
-            <div class="progress-bar @GetProgressBarClass()" 
-                 style="width: @(GetProgressPercentage())%" 
-                 role="progressbar" 
-                 aria-valuenow="@GetProgressPercentage()" 
-                 aria-valuemin="0" 
+            <div class="progress-bar @GetProgressBarClass()"
+                 style="width: @(GetProgressPercentage().ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%"
+                 role="progressbar"
+                 aria-valuenow="@GetProgressPercentage()"
+                 aria-valuemin="0"
                  aria-valuemax="100">
             </div>
         </div>
@@ -22,7 +22,7 @@
 
 @code {
     [Parameter]
-    public int DurationSeconds { get; set; } = 300; // 5 minutes default
+    public int DurationSeconds { get; set; } = 45;
 
     [Parameter]
     public bool ShowProgressBar { get; set; } = true;
@@ -37,17 +37,24 @@
     private int _timeRemaining;
     private bool _isDisposed;
 
+    // Warning thresholds as fractions of total duration
+    private int WarnYellowAt => Math.Max(10, (int)(DurationSeconds * 0.25));
+    private int WarnRedAt    => Math.Max(5,  (int)(DurationSeconds * 0.10));
+
     public int TimeRemaining => _timeRemaining;
 
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
+        // Restart when DurationSeconds changes (new quiz or category change)
+        StopTimer();
         _timeRemaining = DurationSeconds;
+        _isDisposed = false;
         StartTimer();
     }
 
     private void StartTimer()
     {
-        _timer = new Timer(1000); // Update every second
+        _timer = new Timer(1000);
         _timer.Elapsed += OnTimerElapsed;
         _timer.AutoReset = true;
         _timer.Start();
@@ -85,35 +92,29 @@
         StateHasChanged();
     }
 
-    private string FormatTime(int seconds)
+    private static string FormatTime(int seconds)
     {
         var minutes = seconds / 60;
         var remainingSeconds = seconds % 60;
         return $"{minutes:D2}:{remainingSeconds:D2}";
     }
 
-    private string GetTimerClass() => _timeRemaining switch
-    {
-        <= 30 => "text-danger",
-        <= 60 => "text-warning",
-        _ => "text-primary"
-    };
+    private string GetTimerClass() =>
+        _timeRemaining <= WarnRedAt    ? "text-danger" :
+        _timeRemaining <= WarnYellowAt ? "text-warning" :
+                                         "text-primary";
 
-    private string GetProgressBarClass() => _timeRemaining switch
-    {
-        <= 30 => "bg-danger",
-        <= 60 => "bg-warning",
-        _ => "bg-primary"
-    };
+    private string GetProgressBarClass() =>
+        _timeRemaining <= WarnRedAt    ? "bg-danger" :
+        _timeRemaining <= WarnYellowAt ? "bg-warning" :
+                                         "bg-primary";
 
-    private double GetProgressPercentage()
-    {
-        return Math.Max(0, (double)_timeRemaining / DurationSeconds * 100);
-    }
+    private double GetProgressPercentage() =>
+        DurationSeconds > 0 ? Math.Max(0, (double)_timeRemaining / DurationSeconds * 100) : 0;
 
     public void Dispose()
     {
         _isDisposed = true;
         StopTimer();
     }
-} 
+}

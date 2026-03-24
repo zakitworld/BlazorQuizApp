@@ -299,7 +299,8 @@ namespace BlazorQuizApp.Migrations
                         name: "FK_QuizAnswers_QuizResults_QuizResultId",
                         column: x => x.QuizResultId,
                         principalTable: "QuizResults",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(

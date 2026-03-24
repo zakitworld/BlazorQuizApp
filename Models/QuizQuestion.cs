@@ -20,6 +20,9 @@ namespace BlazorQuizApp.Models
         public int SelectedOptionId { get; set; } = -1;
         public int CorrectOptionId { get; set; }
         
+        [StringLength(2000)]
+        public string? Explanation { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
     }

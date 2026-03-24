@@ -1,4 +1,5 @@
 @page "/Account/Manage"
+@attribute [ExcludeFromInteractiveRouting]
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
@@ -20,7 +21,7 @@
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center mb-4">
                         <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; font-size: 1.5rem; font-weight: 700;">
-                            @(user?.FullName?[0].ToString().ToUpper() ?? "?")
+                            @(string.IsNullOrWhiteSpace(user?.FullName) ? "?" : user.FullName[0].ToString().ToUpper())
                         </div>
                         <div class="ms-3">
                             <h2 class="h4 mb-0">@user?.FullName</h2>
@@ -56,8 +57,8 @@
                     <hr class="my-4" />
 
                     <div class="d-grid gap-2">
-                        <a href="Account/Manage/ChangePassword" class="btn btn-outline-secondary">Change Password</a>
-                        <a href="Account/Manage/TwoFactorAuthentication" class="btn btn-outline-secondary">Two-factor Authentication</a>
+                        <a href="/Account/Manage/ChangePassword" class="btn btn-outline-secondary">Change Password</a>
+                        <a href="/Account/Manage/TwoFactorAuthentication" class="btn btn-outline-secondary">Two-factor Authentication</a>
                     </div>
                 </div>
             </div>

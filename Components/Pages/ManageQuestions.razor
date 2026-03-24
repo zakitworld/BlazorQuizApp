@@ -23,11 +23,13 @@
                     <option value="">All Categories</option>
                     <option value="General">General</option>
                     <option value="ASP.NET Core">ASP.NET Core</option>
+                    <option value="Blazor">Blazor</option>
                     <option value="C#">C#</option>
-                    <option value="JavaScript">JavaScript</option>
                     <option value="Database">Database</option>
-                    <option value="Web Development">Web Development</option>
+                    <option value="Entity Framework">Entity Framework</option>
+                    <option value="JavaScript">JavaScript</option>
                     <option value="Programming Concepts">Programming Concepts</option>
+                    <option value="Web Development">Web Development</option>
                 </select>
             </div>
             <div class="col-md-3">
@@ -140,6 +142,33 @@ else if (!isLoading && !questions.Any())
                     <ValidationMessage For="@(() => newQuestion.QuestionText)" />
                 </div>
 
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="category" class="form-label">Category</label>
+                        <InputSelect id="category" @bind-Value="newQuestion.Category" class="form-select">
+                            <option value="General">General</option>
+                            <option value="ASP.NET Core">ASP.NET Core</option>
+                            <option value="Blazor">Blazor</option>
+                            <option value="C#">C#</option>
+                            <option value="Database">Database</option>
+                            <option value="Entity Framework">Entity Framework</option>
+                            <option value="JavaScript">JavaScript</option>
+                            <option value="Programming Concepts">Programming Concepts</option>
+                            <option value="Web Development">Web Development</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => newQuestion.Category)" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="difficulty" class="form-label">Difficulty</label>
+                        <InputSelect id="difficulty" @bind-Value="newQuestion.Difficulty" class="form-select">
+                            <option value="Easy">Easy</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Hard">Hard</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => newQuestion.Difficulty)" />
+                    </div>
+                </div>
+
                 <div class="options-section mb-3">
                     <label class="form-label">Options</label>
                     @for (int i = 0; i < newQuestion.OptionTexts.Count; i++)
@@ -171,6 +200,15 @@ else if (!isLoading && !questions.Any())
                         }
                     </InputSelect>
                     <ValidationMessage For="@(() => newQuestion.CorrectOptionIndex)" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="explanation" class="form-label">
+                        Explanation <span class="text-muted small">(optional — shown after answering)</span>
+                    </label>
+                    <InputTextArea id="explanation" @bind-Value="newQuestion.Explanation" class="form-control" rows="3"
+                                   placeholder="Explain why the correct answer is correct..." />
+                    <ValidationMessage For="@(() => newQuestion.Explanation)" />
                 </div>
 
                 <div class="d-flex gap-2">

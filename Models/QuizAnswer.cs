@@ -13,7 +13,7 @@ namespace BlazorQuizApp.Models
         public int SelectedOptionId { get; set; }
         
         public DateTime AnsweredAt { get; set; } = DateTime.UtcNow;
-        
+        public int? TimeTakenSeconds { get; set; }
         public int? QuizResultId { get; set; }
     }
 } 

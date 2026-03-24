@@ -12,15 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BlazorQuizApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260323161539_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260324141136_AddQuizImprovements")]
+    partial class AddQuizImprovements
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.1")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -160,6 +160,9 @@ namespace BlazorQuizApp.Migrations
                     b.Property<int>("SelectedOptionId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("TimeTakenSeconds")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("QuizResultId");
@@ -214,6 +217,10 @@ namespace BlazorQuizApp.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("Explanation")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.Property<string>("QuestionText")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -238,6 +245,11 @@ namespace BlazorQuizApp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<DateTime>("CompletedAt")
                         .HasColumnType("datetime2");
 
@@ -246,6 +258,12 @@ namespace BlazorQuizApp.Migrations
 
                     b.Property<TimeSpan>("Duration")
                         .HasColumnType("time");
+
+                    b.Property<bool>("IsPracticeMode")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("int");
 
                     b.Property<int>("TotalQuestions")
                         .HasColumnType("int");
@@ -487,7 +505,8 @@ namespace BlazorQuizApp.Migrations
                 {
                     b.HasOne("BlazorQuizApp.Models.QuizResult", null)
                         .WithMany("Answers")
-                        .HasForeignKey("QuizResultId");
+                        .HasForeignKey("QuizResultId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("BlazorQuizApp.Models.QuizOption", b =>

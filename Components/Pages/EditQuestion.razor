@@ -50,11 +50,13 @@ else if (!isLoading && question != null)
                         <InputSelect id="category" @bind-Value="questionForm.Category" class="form-select">
                             <option value="General">General</option>
                             <option value="ASP.NET Core">ASP.NET Core</option>
+                            <option value="Blazor">Blazor</option>
                             <option value="C#">C#</option>
-                            <option value="JavaScript">JavaScript</option>
                             <option value="Database">Database</option>
-                            <option value="Web Development">Web Development</option>
+                            <option value="Entity Framework">Entity Framework</option>
+                            <option value="JavaScript">JavaScript</option>
                             <option value="Programming Concepts">Programming Concepts</option>
+                            <option value="Web Development">Web Development</option>
                         </InputSelect>
                         <ValidationMessage For="@(() => questionForm.Category)" />
                     </div>
@@ -101,6 +103,15 @@ else if (!isLoading && question != null)
                         }
                     </InputSelect>
                     <ValidationMessage For="@(() => questionForm.CorrectOptionIndex)" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="explanation" class="form-label">
+                        Explanation <span class="text-muted small">(optional — shown after answering)</span>
+                    </label>
+                    <InputTextArea id="explanation" @bind-Value="questionForm.Explanation" class="form-control" rows="3"
+                                   placeholder="Explain why the correct answer is correct..." />
+                    <ValidationMessage For="@(() => questionForm.Explanation)" />
                 </div>
 
                 <div class="d-flex gap-2">
@@ -174,14 +185,14 @@ else if (!isLoading && question != null)
             {
 
                 questionForm.QuestionText = question.QuestionText;
-
                 questionForm.Category = question.Category;
-
                 questionForm.Difficulty = question.Difficulty;
-
+                questionForm.Explanation = question.Explanation;
                 questionForm.OptionTexts = question.Options.Select(o => o.Text).ToList();
-
-                questionForm.CorrectOptionIndex = question.CorrectOptionId - 1;
+                var correctOption = question.Options.FirstOrDefault(o => o.Id == question.CorrectOptionId);
+                questionForm.CorrectOptionIndex = correctOption != null
+                    ? question.Options.IndexOf(correctOption)
+                    : 0;
 
             }
 

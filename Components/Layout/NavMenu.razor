@@ -1,99 +1,121 @@
-﻿@implements IDisposable
-
+@implements IDisposable
 @inject NavigationManager NavigationManager
+@inject SignInManager<ApplicationUser> SignInManager
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using BlazorQuizApp.Models
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">BlazorQuizApp</a>
+<nav class="navbar navbar-expand-md navbar-dark bg-dark shadow-sm fixed-top">
+    <div class="container-fluid px-3 px-lg-5">
+
+        <a class="navbar-brand fw-bold fs-5" href="/">
+            <i class="bi bi-patch-question-fill text-primary"></i>BlazorQuiz
+        </a>
+
+        <button class="navbar-toggler border-0" type="button"
+                data-bs-toggle="collapse" data-bs-target="#mainNav"
+                aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNav">
+
+            <ul class="navbar-nav me-auto mt-2 mt-md-0">
+                <li class="nav-item">
+                    <NavLink class="nav-link px-3" href="" Match="NavLinkMatch.All">
+                        <i class="bi bi-house-door"></i>Home
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link px-3" href="quiz">
+                        <i class="bi bi-play-circle"></i>Take Quiz
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link px-3" href="leaderboard">
+                        <i class="bi bi-trophy"></i>Leaderboard
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link px-3" href="pricing">
+                        <i class="bi bi-star"></i>Pricing
+                    </NavLink>
+                </li>
+                <AuthorizeView>
+                    <Authorized>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle px-3" href="#" id="dashboardDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-speedometer2"></i>Dashboard
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-dark shadow border-0" aria-labelledby="dashboardDropdown">
+                                <li>
+                                    <NavLink class="dropdown-item py-2" href="/quiz-history">
+                                        <i class="bi bi-clock-history me-2"></i>History
+                                    </NavLink>
+                                </li>
+                                <li>
+                                    <NavLink class="dropdown-item py-2" href="/statistics">
+                                        <i class="bi bi-graph-up me-2"></i>Statistics
+                                    </NavLink>
+                                </li>
+                                <AuthorizeView Roles="Admin" Context="adminContext">
+                                    <Authorized>
+                                        <li><hr class="dropdown-divider bg-secondary"></li>
+                                        <li>
+                                            <NavLink class="dropdown-item py-2 text-info" href="/manage-questions">
+                                                <i class="bi bi-gear me-2"></i>Manage Questions
+                                            </NavLink>
+                                        </li>
+                                    </Authorized>
+                                </AuthorizeView>
+                            </ul>
+                        </li>
+                    </Authorized>
+                </AuthorizeView>
+            </ul>
+
+            <ul class="navbar-nav ms-auto mt-2 mt-md-0 align-items-md-center">
+                <AuthorizeView>
+                    <Authorized>
+                        <li class="nav-item dropdown ms-md-2">
+                            <a class="nav-link dropdown-toggle px-3" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle"></i>
+                                <span class="d-none d-lg-inline">@context.User.Identity?.Name</span>
+                                <span class="d-lg-none">Account</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark shadow border-0" aria-labelledby="userDropdown">
+                                <li>
+                                    <NavLink class="dropdown-item py-2" href="/Account/Manage">
+                                        <i class="bi bi-person-gear me-2"></i>Settings
+                                    </NavLink>
+                                </li>
+                                <li><hr class="dropdown-divider bg-secondary"></li>
+                                <li>
+                                    <button type="button" class="dropdown-item py-2 text-danger w-100 text-start" @onclick="LogoutAsync">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                    </button>
+                                </li>
+                            </ul>
+                        </li>
+                    </Authorized>
+                    <NotAuthorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link px-3" href="/Account/Register">
+                                <i class="bi bi-person-plus"></i>Register
+                            </NavLink>
+                        </li>
+                        <li class="nav-item ms-md-1">
+                            <a class="btn btn-primary btn-sm px-3 py-2" href="/Account/Login">
+                                <i class="bi bi-box-arrow-in-right"></i>Login
+                            </a>
+                        </li>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </ul>
+
+        </div>
     </div>
-</div>
-
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="quiz">
-                <span class="bi bi-play-circle-nav-menu" aria-hidden="true"></span> Take Quiz
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="leaderboard">
-                <span class="bi bi-trophy-nav-menu" aria-hidden="true"></span> Leaderboard
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="pricing">
-                <span class="bi bi-star-nav-menu" aria-hidden="true"></span> Pricing
-            </NavLink>
-        </div>
-
-
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="quiz-history">
-                        <span class="bi bi-clock-history-nav-menu" aria-hidden="true"></span> Quiz History
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="statistics">
-                        <span class="bi bi-graph-up-nav-menu" aria-hidden="true"></span> Statistics
-                    </NavLink>
-                </div>
-            </Authorized>
-        </AuthorizeView>
-
-        <AuthorizeView Roles="Admin">
-            <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="manage-questions">
-                        <span class="bi bi-gear-nav-menu" aria-hidden="true"></span> Manage Questions
-                    </NavLink>
-                </div>
-            </Authorized>
-        </AuthorizeView>
-
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Manage">
-                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <form action="Account/Logout" method="post">
-                        <AntiforgeryToken />
-                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
-                        <button type="submit" class="nav-link">
-                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
-                        </button>
-                    </form>
-                </div>
-            </Authorized>
-            <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Register">
-                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Login">
-                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
-                    </NavLink>
-                </div>
-            </NotAuthorized>
-        </AuthorizeView>
-    </nav>
-</div>
+</nav>
 
 @code {
     private string? currentUrl;
@@ -102,6 +124,12 @@
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private async Task LogoutAsync()
+    {
+        await SignInManager.SignOutAsync();
+        NavigationManager.NavigateTo("/", forceLoad: true);
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -115,4 +143,3 @@
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }
-

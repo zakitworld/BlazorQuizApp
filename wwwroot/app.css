@@ -2,13 +2,13 @@ html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
-/* Offset content below the fixed navbar (Bootstrap default navbar height ~58px) */
 body {
-    padding-top: 64px;
+    padding-top: 0;
 }
 
 .main-content {
-    padding: 1.5rem 1rem;
+    /* Padding removed to allow full-width hero sections on all pages */
+    padding: 0;
 }
 
 @media (min-width: 768px) {
@@ -27,6 +27,25 @@ a, .btn-link {
     border-color: #1861ac;
 }
 
+/* Global Page Header for seamless navbar transition */
+.page-header {
+    background: var(--primary-gradient, linear-gradient(135deg, #1b6ec2 0%, #004dc0 100%));
+    padding-top: 130px; /* Increased offset for fixed navbar breathing room */
+    padding-bottom: 3.5rem;
+    color: white;
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    margin-bottom: 0;
+    font-weight: 700;
+}
+
+.pt-header {
+    padding-top: 130px !important;
+}
+
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
@@ -43,7 +62,11 @@ h1:focus {
     border-radius: 6px;
 }
 
-/* Force navbar links, buttons, and brand to flex so icon and text are always on the same center line */
+.navbar-transparent {
+    background-color: transparent !important;
+    transition: background-color 0.3s ease;
+}
+
 .navbar .nav-link,
 .navbar .btn-link,
 .navbar .btn,
@@ -98,7 +121,7 @@ h1:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem 0;
+    padding: 130px 0 32px 0; /* Increased top padding for navbar clearance */
 }
 
 @keyframes gradientMove {

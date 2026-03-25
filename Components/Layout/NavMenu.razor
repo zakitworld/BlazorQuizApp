@@ -1,11 +1,10 @@
 @implements IDisposable
 @inject NavigationManager NavigationManager
-@inject SignInManager<ApplicationUser> SignInManager
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Identity
 @using BlazorQuizApp.Models
 
-<nav class="navbar navbar-expand-md navbar-dark bg-dark shadow-sm fixed-top">
+<nav class="navbar navbar-expand-md navbar-dark shadow-sm fixed-top @(ShouldBeTransparent ? "navbar-transparent" : "bg-dark")">
     <div class="container-fluid px-3 px-lg-5">
 
         <a class="navbar-brand fw-bold fs-5" href="/">
@@ -91,9 +90,13 @@
                                 </li>
                                 <li><hr class="dropdown-divider bg-secondary"></li>
                                 <li>
-                                    <button type="button" class="dropdown-item py-2 text-danger w-100 text-start" @onclick="LogoutAsync">
-                                        <i class="bi bi-box-arrow-right me-2"></i>Logout
-                                    </button>
+                                    <form action="Account/Logout" method="post">
+                                        <AntiforgeryToken />
+                                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                                        <button type="submit" class="dropdown-item py-2 text-danger w-100 text-start">
+                                            <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                        </button>
+                                    </form>
                                 </li>
                             </ul>
                         </li>
@@ -120,17 +123,22 @@
 @code {
     private string? currentUrl;
 
+    private bool ShouldBeTransparent => 
+        string.IsNullOrEmpty(currentUrl) || 
+        currentUrl == "leaderboard" || 
+        currentUrl == "pricing" || 
+        currentUrl == "statistics" || 
+        currentUrl == "quiz-history" || 
+        currentUrl == "manage-questions" ||
+        currentUrl.StartsWith("Account/Login") ||
+        currentUrl.StartsWith("Account/Register");
+
     protected override void OnInitialized()
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
     }
 
-    private async Task LogoutAsync()
-    {
-        await SignInManager.SignOutAsync();
-        NavigationManager.NavigateTo("/", forceLoad: true);
-    }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {

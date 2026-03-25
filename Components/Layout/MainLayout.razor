@@ -1,10 +1,15 @@
 @inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
 
 <NavMenu />
 
-<main class="main-content">
+<main>
     @Body
 </main>
+
+@code {
+    private bool IsHomePage => NavigationManager.ToBaseRelativePath(NavigationManager.Uri) == "";
+}
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.

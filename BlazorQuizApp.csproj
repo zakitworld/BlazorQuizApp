@@ -53,6 +53,14 @@
     <Content Remove="C:\Users\ZAK I.T. WORLD\.nuget\packages\microsoft.codeanalysis.workspaces.msbuild\4.14.0\contentFiles\any\any\BuildHost-netcore\zh-Hans\System.CommandLine.resources.dll" />
     <Content Remove="C:\Users\ZAK I.T. WORLD\.nuget\packages\microsoft.codeanalysis.workspaces.msbuild\4.14.0\contentFiles\any\any\BuildHost-netcore\zh-Hant\System.CommandLine.resources.dll" />
   </ItemGroup>
+  <!-- Exclude the nested test project from this project's compilation -->
+  <ItemGroup>
+    <Compile Remove="BlazorQuizApp.Tests\**" />
+    <Content Remove="BlazorQuizApp.Tests\**" />
+    <EmbeddedResource Remove="BlazorQuizApp.Tests\**" />
+    <None Remove="BlazorQuizApp.Tests\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.5" />

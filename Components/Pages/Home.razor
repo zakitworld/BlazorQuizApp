@@ -15,11 +15,11 @@
                         Challenge yourself with interactive quizzes, track your progress in real-time, and climb the
                         global leaderboard.
                     </p>
-                    <div class="d-flex gap-3">
-                        <NavLink href="quiz" class="btn btn-primary-premium btn-lg px-5 py-3">
+                    <div class="d-flex flex-wrap gap-3">
+                        <NavLink href="quiz" class="btn btn-primary-premium btn-lg px-4 py-2 px-sm-5 py-sm-3">
                             <i class="bi bi-rocket-takeoff me-2"></i>Get Started
                         </NavLink>
-                        <NavLink href="pricing" class="btn btn-outline-light-premium btn-lg px-5 py-3">
+                        <NavLink href="pricing" class="btn btn-outline-light-premium btn-lg px-4 py-2 px-sm-5 py-sm-3">
                             <i class="bi bi-star me-2"></i>Go Pro
                         </NavLink>
                     </div>
@@ -173,6 +173,13 @@
         font-weight: 800;
     }
 
+    /* Scale down display-2 heading on small screens */
+    @@media (max-width: 575.98px) {
+        .hero-section h1.display-2 {
+            font-size: 2.2rem;
+        }
+    }
+
     .text-light-gray {
         color: #e9ecef;
     }
@@ -188,8 +195,9 @@
         min-height: 60vh;
         display: flex;
         align-items: center;
-        margin-top: -64px;
-        padding-top: 180px !important;
+        /* Pull hero up to cover the main padding-top so gradient starts behind navbar */
+        margin-top: -56px;
+        padding-top: calc(56px + 4rem) !important;
     }
 
     .text-highlight {

@@ -3,7 +3,7 @@ html, body {
 }
 
 body {
-    padding-top: 0;
+    padding-top: 0; /* Navbar clearance handled by main { padding-top: 56px } in MainLayout.razor.css */
 }
 
 .main-content {
@@ -30,10 +30,12 @@ a, .btn-link {
 /* Global Page Header for seamless navbar transition */
 .page-header {
     background: var(--primary-gradient, linear-gradient(135deg, #1b6ec2 0%, #004dc0 100%));
-    padding-top: 130px; /* Increased offset for fixed navbar breathing room */
     padding-bottom: 3.5rem;
     color: white;
     width: 100%;
+    /* Pull header up behind the fixed navbar so gradient fills edge-to-edge */
+    margin-top: -56px;
+    padding-top: calc(56px + 2.5rem);
     margin-bottom: 2rem;
 }
 
@@ -43,7 +45,7 @@ a, .btn-link {
 }
 
 .pt-header {
-    padding-top: 130px !important;
+    padding-top: 2rem !important;
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
@@ -121,7 +123,7 @@ h1:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 130px 0 32px 0; /* Increased top padding for navbar clearance */
+    padding: 1.5rem 1rem 2rem; /* top clearance handled by main { padding-top: 56px } */
 }
 
 @keyframes gradientMove {
@@ -287,6 +289,34 @@ h1:focus {
 /* Fix for Home page link color inside .text-center to avoid blue on gray */
 .text-center a.btn-secondary {
     color: #fff !important;
+}
+
+/* Notification toasts – prevent overflow on narrow screens */
+@media (max-width: 575.98px) {
+    .notification-container {
+        left: 0.5rem !important;
+        right: 0.5rem !important;
+        top: 60px !important; /* below fixed navbar */
+        padding: 0 !important;
+    }
+
+    .notification-container .toast {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
+/* Responsive typography – scale down large Bootstrap display headings on small screens */
+@media (max-width: 575.98px) {
+    .display-2 { font-size: 2.2rem !important; }
+    .display-3 { font-size: 1.8rem !important; }
+    .display-4 { font-size: 1.6rem !important; }
+    .display-5 { font-size: 1.4rem !important; }
+}
+
+@media (max-width: 767.98px) {
+    .display-2 { font-size: 2.5rem !important; }
+    .display-3 { font-size: 2rem !important; }
 }
 
 /* Question Management Options List - prevent text overflow */

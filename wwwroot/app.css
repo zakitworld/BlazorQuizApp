@@ -288,3 +288,30 @@ h1:focus {
 .text-center a.btn-secondary {
     color: #fff !important;
 }
+
+/* Question Management Options List - prevent text overflow */
+.options-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: flex-start;
+    margin-top: 0.5rem;
+}
+
+.options-list .badge {
+    white-space: normal;
+    text-align: left;
+    max-width: 100%;
+    word-break: break-word; /* Ensure extremely long unbroken words also wrap */
+    height: auto;
+    padding: 0.5rem 0.75rem;
+    line-height: 1.4;
+    margin-right: 0 !important; /* Override inline me-2 in favor of gap */
+    margin-bottom: 0 !important; /* Override inline mb-1 in favor of gap */
+}
+
+/* Ensure question text doesn't overflow */
+.question-item h6 {
+    word-wrap: break-word;
+    word-break: break-word;
+}

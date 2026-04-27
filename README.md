@@ -41,15 +41,17 @@ A modern, interactive quiz application built with Blazor Server and ASP.NET Core
 
 ## 🚀 Getting Started
 
+> ⚠️ The solution is now split: open `BlazorQuizApp.sln` for the web version and `BlazorQuizApp.Maui.sln` for the desktop/mobile version. Each solution hosts only its own project so the MAUI workload cannot interfere with the Blazor Server app.
+
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
    cd BlazorQuizApp
    ```
 
-2. **Restore dependencies**
+2. **Restore dependencies for the web app**
    ```bash
-   dotnet restore
+   dotnet restore BlazorQuizApp.sln
    ```
 
 3. **Run database migrations**
@@ -59,7 +61,7 @@ A modern, interactive quiz application built with Blazor Server and ASP.NET Core
 
 4. **Run the application**
    ```bash
-   dotnet run
+   dotnet run --project BlazorQuizApp.csproj
    ```
 
 5. **Access the application**
@@ -133,6 +135,26 @@ The application includes:
 - Error handling scenarios
 - User flow testing
 - Responsive design testing
+
+
+## 🖥️ Desktop & Mobile App
+
+The `BlazorQuizApp.Maui.sln` solution hosts the .NET MAUI 10 hybrid project so the desktop/mobile workload remains fenced off from the Blazor Server application. It still reuses the quiz data, timer, and scoring logic to ship Windows and Android experiences with the same topic picker, timed/practice modes, leaderboard, and history pages plus local persistence of quiz results.
+
+### Running the MAUI version
+
+1. Install the MAUI workloads (dotnet workload install maui maui-android maui-windows).
+2. Restore the MAUI dependencies with `dotnet restore BlazorQuizApp.Maui.sln`.
+3. Launch the Windows desktop experience:
+   ```bash
+   dotnet build BlazorQuizApp.Maui/BlazorQuizApp.Maui.csproj -f net10.0-windows10.0.19041.0 -t:Run
+   ```
+4. Launch the Android experience (emulator/device required):
+   ```bash
+   dotnet build BlazorQuizApp.Maui/BlazorQuizApp.Maui.csproj -f net10.0-android -t:Run
+   ```
+
+The MAUI app stores results in FileSystem.AppDataDirectory and loads the default questions from Data/questions.json so the experience works offline while mirroring the existing web quiz logic.
 
 ## 🔄 Future Enhancements
 

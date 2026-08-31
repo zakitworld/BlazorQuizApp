@@ -16,24 +16,38 @@
 
 <PageTitle>Log in | Blazor Quiz App</PageTitle>
 
-<div class="auth-bg">
-    <div class="auth-card">
+<div class="auth-shell">
+    <aside class="auth-story"><a class="auth-brand" href="/"><span>Q</span>BlazorQuiz</a><div><span class="eyebrow">Welcome back</span><h1>Momentum looks good on you.</h1><p>Pick up where you left off, see what’s improving, and make the next milestone yours.</p></div><blockquote>“Small progress, made visible, becomes motivation.”</blockquote></aside>
+    <main class="auth-panel"><div class="auth-modal-card">
         <div class="auth-logo">Q</div>
-        <h1 class="auth-title">Welcome Back</h1>
-        <p class="auth-subtitle">Log in to continue your quiz journey</p>
+        <h1 class="auth-title">Sign in</h1>
+        <p class="auth-subtitle">Enter your details to return to your learning space.</p>
 
         <StatusMessage Message="@errorMessage" />
+
+        @if (Registered == true)
+        {
+            <div class="alert alert-success">Account created. Check your email to confirm it before signing in.</div>
+        }
+        @if (Confirmed == true)
+        {
+            <div class="alert alert-success">Email confirmed. You can now sign in.</div>
+        }
+        @if (Reset == true)
+        {
+            <div class="alert alert-success">Password reset complete. You can now sign in.</div>
+        }
 
         <form action="Account/PerformLogin?returnUrl=@ReturnUrl" method="post">
             <AntiforgeryToken />
             
             <div class="form-group position-relative mb-3">
-                <input type="email" name="email" class="form-control auth-input" autocomplete="username" required placeholder="name@example.com" />
+                <label class="auth-label">Email address</label><input type="email" name="email" class="form-control auth-input" autocomplete="username" required placeholder="name@example.com" />
                 <i class="bi bi-envelope auth-input-icon"></i>
             </div>
 
             <div class="form-group position-relative mb-3">
-                <input type="password" name="password" class="form-control auth-input" autocomplete="current-password" required placeholder="password" />
+                <label class="auth-label">Password</label><input type="password" name="password" class="form-control auth-input" autocomplete="current-password" required placeholder="Enter your password" />
                 <i class="bi bi-lock auth-input-icon"></i>
             </div>
 
@@ -49,7 +63,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="w-100 btn btn-lg btn-primary mb-3">Log in</button>
+            <button type="submit" class="w-100 btn btn-lg btn-primary mb-3">Continue to learning <i class="bi bi-arrow-right ms-2"></i></button>
 
             <div class="text-center mt-3">
                 <p class="mb-0 text-secondary small">Don't have an account? 
@@ -57,7 +71,7 @@
                 </p>
             </div>
         </form>
-    </div>
+    </div></main>
 </div>
 
 @code {
@@ -69,6 +83,10 @@
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery] private bool? Registered { get; set; }
+    [SupplyParameterFromQuery] private bool? Confirmed { get; set; }
+    [SupplyParameterFromQuery] private bool? Reset { get; set; }
 
     protected override async Task OnInitializedAsync()
     {

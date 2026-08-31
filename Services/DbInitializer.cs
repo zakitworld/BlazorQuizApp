@@ -23,8 +23,14 @@ namespace BlazorQuizApp.Services
                 }
             }
 
-            var adminEmail = configuration["AppSettings:AdminEmail"] ?? "admin@blazorquiz.com";
-            var adminPassword = configuration["AppSettings:AdminPassword"] ?? "Admin@123!";
+            var adminEmail = configuration["AppSettings:AdminEmail"];
+            var adminPassword = configuration["AppSettings:AdminPassword"];
+
+            if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+            {
+                logger.LogInformation("Admin credentials are not configured; skipping admin user creation.");
+                return;
+            }
 
             var adminUser = await userManager.FindByEmailAsync(adminEmail);
             if (adminUser == null)

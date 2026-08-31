@@ -26,12 +26,13 @@ namespace BlazorQuizApp.Middleware
 
             // Content Security Policy
             var csp = "default-src 'self'; " +
-                     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+                     "script-src 'self' 'unsafe-inline' https://js.paystack.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
                      "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
                      "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; " +
                      "img-src 'self' data: https:; " +
                      "connect-src 'self' https://api.paystack.co https://paystack.com; " +
-                     "frame-src https://js.paystack.co;";
+                     "frame-src https://js.paystack.co; " +
+                     "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';";
 
             context.Response.Headers.Append("Content-Security-Policy", csp);
 

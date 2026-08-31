@@ -31,7 +31,7 @@
 
                     <StatusMessage Message="@statusMessage" />
 
-                    <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" FormName="profile" Enhance>
+                    <EditForm Model="FormInput" OnValidSubmit="OnValidSubmitAsync" FormName="profile" Enhance>
                         <DataAnnotationsValidator />
 
                         <div class="mb-3">
@@ -41,14 +41,14 @@
 
                         <div class="mb-3">
                             <label for="full-name" class="form-label fw-bold">Full Name</label>
-                            <InputText @bind-Value="Input.FullName" class="form-control" id="full-name" placeholder="Please enter your full name." />
-                            <ValidationMessage For="() => Input.FullName" class="text-danger small" />
+                            <InputText @bind-Value="FormInput.FullName" class="form-control" id="full-name" placeholder="Please enter your full name." />
+                            <ValidationMessage For="() => FormInput.FullName" class="text-danger small" />
                         </div>
 
                         <div class="mb-4">
                             <label for="phone-number" class="form-label fw-bold">Phone Number</label>
-                            <InputText @bind-Value="Input.PhoneNumber" class="form-control" id="phone-number" placeholder="Please enter your phone number." />
-                            <ValidationMessage For="() => Input.PhoneNumber" class="text-danger small" />
+                            <InputText @bind-Value="FormInput.PhoneNumber" class="form-control" id="phone-number" placeholder="Please enter your phone number." />
+                            <ValidationMessage For="() => FormInput.PhoneNumber" class="text-danger small" />
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Save Changes</button>
@@ -74,29 +74,30 @@
     private HttpContext HttpContext { get; set; } = default!;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel? Input { get; set; }
+    private InputModel FormInput => Input ??= new();
 
     protected override async Task OnInitializedAsync()
     {
         user = await UserAccessor.GetRequiredUserAsync(HttpContext);
         
-        if (string.IsNullOrEmpty(Input.FullName))
+        if (string.IsNullOrEmpty(FormInput.FullName))
         {
-            Input.FullName = user.FullName ?? "";
-            Input.PhoneNumber = user.PhoneNumber ?? "";
+            FormInput.FullName = user.FullName ?? "";
+            FormInput.PhoneNumber = user.PhoneNumber ?? "";
         }
     }
 
     private async Task OnValidSubmitAsync()
     {
-        if (Input.FullName != user.FullName)
+        if (FormInput.FullName != user.FullName)
         {
-            user.FullName = Input.FullName;
+            user.FullName = FormInput.FullName;
         }
 
-        if (Input.PhoneNumber != user.PhoneNumber)
+        if (FormInput.PhoneNumber != user.PhoneNumber)
         {
-            user.PhoneNumber = Input.PhoneNumber;
+            user.PhoneNumber = FormInput.PhoneNumber;
         }
 
         var updateResult = await UserManager.UpdateAsync(user);

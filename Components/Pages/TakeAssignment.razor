@@ -1,0 +1,70 @@
+@page "/assignment/{Id:int}"
+@attribute [Authorize]
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using System.Text.Json
+@inject IAssignmentService AssignmentService
+@inject AuthenticationStateProvider Auth
+@inject IJSRuntime JS
+
+<PageTitle>Assignment | Quiz App</PageTitle>
+<div class="focus-shell">
+@if(loading){<LoadingSpinner IsLoading="true" Message="Preparing your assignment..." />}
+else if(launch == null){<div class="empty-state"><i class="bi bi-lock"></i><h2>This assignment is unavailable</h2><p>It may not be open yet, may have closed, or you may have used all attempts.</p><a class="btn btn-primary" href="/assignments">Back to assignments</a></div>}
+else if(result != null)
+{
+    <div class="result-hero @(result.IsPassed?"passed":"retry")"><span class="eyebrow">Attempt complete</span><h1>@(result.IsPassed?"You passed — beautifully done.":"Keep going — progress is happening.")</h1><div class="score-orb">@result.ScorePercentage.ToString("F0")<small>%</small></div><p>@result.CorrectAnswers of @result.TotalQuestions answers correct</p><div class="d-flex gap-2 justify-content-center"><a class="btn btn-light" href="/assignments">Learning hub</a>@if(result.IsPassed&&result.CertificateCode!=null){<a class="btn btn-dark" href="/certificate/@result.CertificateCode">View certificate</a>}</div></div>
+}
+else
+{
+    <header class="focus-header"><div><span class="eyebrow">Attempt @launch.AttemptNumber of @launch.Assignment.MaxAttempts</span><h1>@launch.Assignment.Title</h1></div><div class="focus-timer"><i class="bi bi-clock"></i><span>@launch.Assignment.QuizTemplate.TimeLimitMinutes min</span></div></header>
+    <div class="progress-track"><span style="width:@Progress%"></span></div>
+    @if(currentQuestion != null)
+    {
+        <section class="question-stage">
+            <div class="question-count">Question @(index+1) <span>of @launch.Questions.Count</span></div>
+            <span class="difficulty-chip">@FormatType(currentQuestion.Type)</span>
+            <h2>@currentQuestion.QuestionText</h2>
+            @if(currentQuestion.Type == QuestionType.ShortAnswer)
+            { <textarea class="form-control short-answer-box" rows="4" @bind="textAnswer" placeholder="Type your answer clearly..."></textarea> }
+            else
+            {
+                <div class="answer-stack">
+                @foreach(var option in currentQuestion.Options)
+                {
+                    var optionId = option.Id;
+                    <button class="answer-button @(IsSelected(optionId)?"selected":"")" @onclick="() => SelectOption(optionId)"><span>@((char)('A'+currentQuestion.Options.IndexOf(option)))</span>@option.Text@if(currentQuestion.Type==QuestionType.MultipleSelect&&IsSelected(optionId)){<i class="bi bi-check-circle-fill ms-auto"></i>}</button>
+                }
+                </div>
+                @if(currentQuestion.Type==QuestionType.MultipleSelect){<small class="text-muted d-block mt-2">Select every answer that applies.</small>}
+            }
+            <div class="question-actions"><button class="btn btn-link" @onclick="Skip">Skip for now</button><button class="btn btn-primary" disabled="@(!AnswerReady)" @onclick="Next">@(index==launch.Questions.Count-1?"Finish assignment":"Next question")</button></div>
+        </section>
+    }
+}
+</div>
+@code {
+    [Parameter] public int Id { get; set; }
+    private string userId = "", textAnswer = "";
+    private bool loading = true, submitting;
+    private AssignmentLaunch? launch; private QuizResult? result;
+    private int index, selectedOptionId; private readonly HashSet<int> selectedOptionIds = [];
+    private DateTime startedAt; private readonly List<QuizAnswer> answers = [];
+    private bool celebrationTriggered;
+    private QuizQuestion? currentQuestion => launch?.Questions.ElementAtOrDefault(index);
+    private double Progress => launch == null ? 0 : (double)index / launch.Questions.Count * 100;
+    private bool AnswerReady => currentQuestion?.Type == QuestionType.ShortAnswer ? !string.IsNullOrWhiteSpace(textAnswer) : currentQuestion?.Type == QuestionType.MultipleSelect ? selectedOptionIds.Count > 0 : selectedOptionId > 0;
+    protected override async Task OnInitializedAsync(){userId=(await Auth.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier)??"";launch=await AssignmentService.LaunchAsync(Id,userId);startedAt=DateTime.UtcNow;loading=false;}
+    protected override async Task OnAfterRenderAsync(bool firstRender){if(!celebrationTriggered&&result?.IsPassed==true){celebrationTriggered=true;await JS.InvokeVoidAsync("quizCelebration.show",$"assignment-result-{result.Id}",result.ScorePercentage>=99.5?"perfect":"pass");}}
+    private async Task Next(){if(currentQuestion==null||submitting)return;answers.RemoveAll(a=>a.QuestionId==currentQuestion.Id);answers.Add(BuildAnswer(currentQuestion));await Advance();}
+    private async Task Skip(){if(currentQuestion==null)return;answers.RemoveAll(a=>a.QuestionId==currentQuestion.Id);answers.Add(new QuizAnswer{QuestionId=currentQuestion.Id,SelectedOptionId=-1});await Advance();}
+    private async Task Advance(){selectedOptionId=0;selectedOptionIds.Clear();textAnswer="";if(index<launch!.Questions.Count-1){if(launch.Assignment.QuizTemplate.IsAdaptive){var nextId=await AssignmentService.GetNextAdaptiveQuestionIdAsync(Id,userId,answers);if(nextId.HasValue){var nextIndex=launch.Questions.FindIndex(index+1,q=>q.Id==nextId);if(nextIndex>index+1)(launch.Questions[index+1],launch.Questions[nextIndex])=(launch.Questions[nextIndex],launch.Questions[index+1]);}}index++;}else await Submit();}
+    private QuizAnswer BuildAnswer(QuizQuestion q)=>new(){QuestionId=q.Id,SelectedOptionId=q.Type==QuestionType.ShortAnswer?0:selectedOptionId,SelectedOptionIdsJson=q.Type==QuestionType.MultipleSelect?JsonSerializer.Serialize(selectedOptionIds):null,TextAnswer=q.Type==QuestionType.ShortAnswer?textAnswer:null,AnsweredAt=DateTime.UtcNow};
+    private void SelectOption(int id){if(currentQuestion?.Type==QuestionType.MultipleSelect){if(!selectedOptionIds.Add(id))selectedOptionIds.Remove(id);}else selectedOptionId=id;}
+    private bool IsSelected(int id)=>currentQuestion?.Type==QuestionType.MultipleSelect?selectedOptionIds.Contains(id):selectedOptionId==id;
+    private static string FormatType(QuestionType type)=>type switch{QuestionType.MultipleSelect=>"Select all that apply",QuestionType.TrueFalse=>"True or false",QuestionType.ShortAnswer=>"Short answer",_=>"Single choice"};
+    private async Task Submit(){submitting=true;foreach(var q in launch!.Questions.Where(q=>answers.All(a=>a.QuestionId!=q.Id)))answers.Add(new QuizAnswer{QuestionId=q.Id,SelectedOptionId=-1});result=await AssignmentService.SubmitAsync(Id,userId,answers,DateTime.UtcNow-startedAt);submitting=false;}
+}

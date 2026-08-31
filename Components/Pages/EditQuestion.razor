@@ -2,10 +2,12 @@
 @using BlazorQuizApp.Models
 @using BlazorQuizApp.Services
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
 @attribute [Authorize(Roles = "Admin")]
 @inject IQuizBusinessService QuizBusinessService
 @inject INotificationService NotificationService
 @inject NavigationManager NavigationManager
+@inject ApplicationDbContext Db
 
 <h1>Edit Question</h1>
 
@@ -48,15 +50,7 @@ else if (!isLoading && question != null)
                     <div class="col-md-6">
                         <label for="category" class="form-label">Category</label>
                         <InputSelect id="category" @bind-Value="questionForm.Category" class="form-select">
-                            <option value="General">General</option>
-                            <option value="ASP.NET Core">ASP.NET Core</option>
-                            <option value="Blazor">Blazor</option>
-                            <option value="C#">C#</option>
-                            <option value="Database">Database</option>
-                            <option value="Entity Framework">Entity Framework</option>
-                            <option value="JavaScript">JavaScript</option>
-                            <option value="Programming Concepts">Programming Concepts</option>
-                            <option value="Web Development">Web Development</option>
+                            @foreach (var category in categories.Where(x => x.IsActive || x.Name == questionForm.Category)) { <option value="@category.Name">@category.Name@(!category.IsActive ? " (retired)" : "")</option> }
                         </InputSelect>
                         <ValidationMessage For="@(() => questionForm.Category)" />
                     </div>
@@ -71,6 +65,22 @@ else if (!isLoading && question != null)
                     </div>
                 </div>
 
+                <div class="form-group mb-3">
+                    <label class="form-label">Answer format</label>
+                    <InputSelect @bind-Value="questionForm.Type" class="form-select">
+                        <option value="@QuestionType.MultipleChoice">Single choice</option>
+                        <option value="@QuestionType.MultipleSelect">Multiple select</option>
+                        <option value="@QuestionType.TrueFalse">True / false</option>
+                        <option value="@QuestionType.ShortAnswer">Short answer</option>
+                    </InputSelect>
+                </div>
+
+                @if (questionForm.Type == QuestionType.ShortAnswer)
+                {
+                    <div class="form-group mb-3"><label class="form-label">Accepted answers</label><InputText @bind-Value="questionForm.AcceptedAnswers" class="form-control" placeholder="Separate alternatives with semicolons" /></div>
+                }
+                else
+                {
                 <div class="options-section mb-3">
                     <label class="form-label">Options</label>
                     @for (int i = 0; i < questionForm.OptionTexts.Count; i++)
@@ -94,6 +104,18 @@ else if (!isLoading && question != null)
                     </button>
                 </div>
 
+                @if (questionForm.Type == QuestionType.MultipleSelect)
+                {
+                    <div class="form-group mb-3"><label class="form-label">Correct options</label>
+                    @for (var i = 0; i < questionForm.OptionTexts.Count; i++)
+                    {
+                        var optionIndex = i;
+                        <label class="form-check"><input class="form-check-input" type="checkbox" checked="@questionForm.CorrectOptionIndexes.Contains(optionIndex)" @onchange="e => ToggleCorrect(optionIndex, (bool?)e.Value == true)" /><span class="form-check-label">Option @(optionIndex + 1)</span></label>
+                    }
+                    </div>
+                }
+                else
+                {
                 <div class="form-group mb-3">
                     <label for="correctOption" class="form-label">Correct Option</label>
                     <InputSelect id="correctOption" @bind-Value="questionForm.CorrectOptionIndex" class="form-control">
@@ -104,6 +126,8 @@ else if (!isLoading && question != null)
                     </InputSelect>
                     <ValidationMessage For="@(() => questionForm.CorrectOptionIndex)" />
                 </div>
+                }
+                }
 
                 <div class="form-group mb-3">
                     <label for="explanation" class="form-label">
@@ -153,6 +177,7 @@ else if (!isLoading && question != null)
     private bool isLoading = true;
 
     private bool isSubmitting = false;
+    private List<QuizCategory> categories = [];
 
 
 
@@ -160,6 +185,7 @@ else if (!isLoading && question != null)
 
     {
 
+        categories = await Db.QuizCategories.AsNoTracking().OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
         await LoadQuestion();
 
     }
@@ -188,11 +214,23 @@ else if (!isLoading && question != null)
                 questionForm.Category = question.Category;
                 questionForm.Difficulty = question.Difficulty;
                 questionForm.Explanation = question.Explanation;
+                questionForm.Type = question.Type;
                 questionForm.OptionTexts = question.Options.Select(o => o.Text).ToList();
                 var correctOption = question.Options.FirstOrDefault(o => o.Id == question.CorrectOptionId);
                 questionForm.CorrectOptionIndex = correctOption != null
                     ? question.Options.IndexOf(correctOption)
                     : 0;
+                if (!string.IsNullOrWhiteSpace(question.CorrectOptionIdsJson))
+                {
+                    var correctIds = System.Text.Json.JsonSerializer.Deserialize<List<int>>(question.CorrectOptionIdsJson) ?? [];
+                    questionForm.CorrectOptionIndexes = question.Options.Select((option, index) => new { option.Id, index })
+                        .Where(x => correctIds.Contains(x.Id)).Select(x => x.index).ToList();
+                }
+                if (!string.IsNullOrWhiteSpace(question.AcceptedAnswersJson))
+                {
+                    var accepted = System.Text.Json.JsonSerializer.Deserialize<List<string>>(question.AcceptedAnswersJson) ?? [];
+                    questionForm.AcceptedAnswers = string.Join("; ", accepted);
+                }
 
             }
 
@@ -278,6 +316,12 @@ else if (!isLoading && question != null)
 
         questionForm.OptionTexts.Add(string.Empty);
 
+    }
+
+    private void ToggleCorrect(int index, bool selected)
+    {
+        if (selected && !questionForm.CorrectOptionIndexes.Contains(index)) questionForm.CorrectOptionIndexes.Add(index);
+        else if (!selected) questionForm.CorrectOptionIndexes.Remove(index);
     }
 
 

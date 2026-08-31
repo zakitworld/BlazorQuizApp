@@ -21,5 +21,8 @@ namespace BlazorQuizApp.Models
 
         public List<string> OptionTexts { get; set; } = ["", "", "", ""];
         public int CorrectOptionIndex { get; set; } = 0;
+        public QuestionType Type { get; set; } = QuestionType.MultipleChoice;
+        public List<int> CorrectOptionIndexes { get; set; } = [];
+        [StringLength(1000)] public string? AcceptedAnswers { get; set; }
     }
 }

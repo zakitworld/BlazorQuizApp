@@ -1,0 +1,82 @@
+@page "/question-studio"
+@attribute [Authorize(Roles = "Admin")]
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@using Microsoft.AspNetCore.Authorization
+@inject IQuestionStudioService Studio
+@inject INotificationService Toast
+
+<PageTitle>Question Studio | Quiz App</PageTitle>
+<div class="workspace-shell studio-shell">
+    <header class="workspace-header">
+        <div><span class="eyebrow">Question Studio</span><h1>Turn source material into stronger assessments.</h1><p>Generate drafts, review quality signals, refine answers, and publish only what you approve.</p></div>
+        <a class="btn btn-outline-secondary" href="/manage-questions">Question bank</a>
+    </header>
+    <div class="workspace-grid">
+        <section class="surface-card span-5 sticky-panel">
+            <div class="section-heading"><div><span class="eyebrow">Source</span><h2>Learning material</h2></div></div>
+            <label class="field"><span>Paste lesson or notes</span><textarea class="form-control source-editor" @bind="sourceText" rows="14" placeholder="Paste factual lesson content here..."></textarea></label>
+            <div class="form-grid mt-3">
+                <label class="field"><span>Category</span><input class="form-control" @bind="category" /></label>
+                <label class="field"><span>Difficulty</span><select class="form-select" @bind="difficulty"><option>Easy</option><option>Medium</option><option>Hard</option></select></label>
+                <label class="field"><span>Drafts</span><input class="form-control" type="number" min="1" max="12" @bind="draftCount" /></label>
+            </div>
+            <button class="btn btn-primary w-100 mt-3" @onclick="Generate" disabled="@busy"><i class="bi bi-stars me-2"></i>Generate review drafts</button>
+        </section>
+        <section class="span-7">
+            @if(drafts.Count == 0)
+            {
+                <div class="empty-state"><i class="bi bi-stars"></i><h3>Your review queue is empty</h3><p>Add source material to generate structured drafts with quality and duplicate checks.</p></div>
+            }
+            else
+            {
+                <div class="review-toolbar"><div><strong>@drafts.Count drafts</strong><small>@drafts.Count(d => d.Approved) approved</small></div><button class="btn btn-dark" @onclick="Publish">Publish approved</button></div>
+                @foreach(var draft in drafts)
+                {
+                    <article class="surface-card draft-card @(draft.Approved ? "approved" : "")">
+                        <div class="draft-head"><label class="approval-toggle"><input type="checkbox" @bind="draft.Approved" /><span>Approve</span></label><span class="quality-score @(draft.Quality.Score < 70 ? "low" : "")">@draft.Quality.Score quality</span></div>
+                        <input class="form-control prompt-editor" @bind="draft.Form.QuestionText" />
+                        <div class="form-grid mt-3">
+                            <label class="field"><span>Format</span><select class="form-select" @bind="draft.Form.Type"><option value="@QuestionType.MultipleChoice">Single choice</option><option value="@QuestionType.MultipleSelect">Multiple select</option><option value="@QuestionType.TrueFalse">True / false</option><option value="@QuestionType.ShortAnswer">Short answer</option></select></label>
+                            <label class="field"><span>Difficulty</span><select class="form-select" @bind="draft.Form.Difficulty"><option>Easy</option><option>Medium</option><option>Hard</option></select></label>
+                        </div>
+                        @if(draft.Form.Type == QuestionType.ShortAnswer)
+                        {
+                            <label class="field mt-3"><span>Accepted answers (separate with semicolons)</span><input class="form-control" @bind="draft.Form.AcceptedAnswers" /></label>
+                        }
+                        else
+                        {
+                            <div class="studio-options">
+                            @for(var i = 0; i < draft.Form.OptionTexts.Count; i++)
+                            {
+                                var optionIndex = i;
+                                <label class="studio-option">
+                                    @if(draft.Form.Type == QuestionType.MultipleSelect)
+                                    {
+                                        <input type="checkbox" checked="@draft.Form.CorrectOptionIndexes.Contains(optionIndex)" @onchange="e => ToggleCorrect(draft.Form, optionIndex, (bool?)e.Value == true)" />
+                                    }
+                                    else
+                                    {
+                                        <input type="radio" name="correct-@draft.GetHashCode()" checked="@(draft.Form.CorrectOptionIndex == optionIndex)" @onchange="() => draft.Form.CorrectOptionIndex = optionIndex" />
+                                    }
+                                    <input class="form-control" @bind="draft.Form.OptionTexts[optionIndex]" />
+                                </label>
+                            }
+                            </div>
+                        }
+                        <label class="field mt-3"><span>Explanation</span><textarea class="form-control" rows="2" @bind="draft.Form.Explanation"></textarea></label>
+                        @if(draft.Quality.Warnings.Count > 0){<div class="quality-notes">@foreach(var warning in draft.Quality.Warnings){<span><i class="bi bi-exclamation-circle"></i>@warning</span>}</div>}
+                    </article>
+                }
+            }
+        </section>
+    </div>
+</div>
+
+@code {
+    private string sourceText = "", category = "General", difficulty = "Medium";
+    private int draftCount = 5; private bool busy; private List<StudioDraft> drafts = [];
+    private async Task Generate(){try{busy=true;drafts=await Studio.GenerateDraftsAsync(sourceText,category,difficulty,draftCount);}catch(Exception ex){Toast.ShowError(ex.Message);}finally{busy=false;}}
+    private async Task Publish(){var count=await Studio.PublishApprovedAsync(drafts);drafts.RemoveAll(d=>d.Approved);Toast.ShowSuccess($"Published {count} reviewed questions.");}
+    private static void ToggleCorrect(NewQuestionForm form,int index,bool selected){if(selected&&!form.CorrectOptionIndexes.Contains(index))form.CorrectOptionIndexes.Add(index);else if(!selected)form.CorrectOptionIndexes.Remove(index);}
+}

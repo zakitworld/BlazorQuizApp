@@ -2,29 +2,30 @@ using BlazorQuizApp.Models;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
+using System.Text.Json;
 
 namespace BlazorQuizApp.Services
 {
     public class QuizBusinessService : IQuizBusinessService
     {
         private readonly ApplicationDbContext _context;
-        private readonly QuizService _quizService;
         private readonly ILogger<QuizBusinessService> _logger;
         private readonly ICacheService? _cacheService;
         private readonly IValidationService? _validationService;
+        private readonly IAuditService? _auditService;
 
         public QuizBusinessService(
             ApplicationDbContext context,
-            QuizService quizService,
             ILogger<QuizBusinessService> logger,
             ICacheService? cacheService = null,
-            IValidationService? validationService = null)
+            IValidationService? validationService = null,
+            IAuditService? auditService = null)
         {
             _context = context;
-            _quizService = quizService;
             _logger = logger;
             _cacheService = cacheService;
             _validationService = validationService;
+            _auditService = auditService;
         }
 
         public async Task<List<QuizQuestion>> GetQuestionsAsync()
@@ -42,33 +43,19 @@ namespace BlazorQuizApp.Services
 
         private async Task<List<QuizQuestion>> FetchQuestionsFromDatabaseAsync()
         {
-            try
-            {
-                return await _context.QuizQuestions
-                    .Include(q => q.Options)
-                    .OrderBy(q => q.CreatedAt)
-                    .ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving quiz questions from database, falling back to JSON file");
-                return await Task.FromResult(_quizService.Questions);
-            }
+            return await _context.QuizQuestions
+                .AsNoTracking()
+                .Include(q => q.Options)
+                .OrderBy(q => q.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<QuizQuestion?> GetQuestionByIdAsync(int id)
         {
-            try
-            {
-                return await _context.QuizQuestions
-                    .Include(q => q.Options)
-                    .FirstOrDefaultAsync(q => q.Id == id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving question {QuestionId}", id);
-                return _quizService.GetQuestionById(id);
-            }
+            return await _context.QuizQuestions
+                .AsNoTracking()
+                .Include(q => q.Options)
+                .FirstOrDefaultAsync(q => q.Id == id);
         }
 
         public async Task<bool> AddQuestionAsync(NewQuestionForm questionForm)
@@ -92,11 +79,13 @@ namespace BlazorQuizApp.Services
                     Difficulty = questionForm.Difficulty,
                     Explanation = sanitizedExplanation,
                     CorrectOptionId = 0,
+                    Type = questionForm.Type,
+                    AcceptedAnswersJson = SerializeAcceptedAnswers(questionForm.AcceptedAnswers),
                     CreatedAt = DateTime.UtcNow,
                     Options = []
                 };
 
-                for (int i = 0; i < questionForm.OptionTexts.Count; i++)
+                for (int i = 0; question.Type != QuestionType.ShortAnswer && i < questionForm.OptionTexts.Count; i++)
                 {
                     var optionText = questionForm.OptionTexts[i];
                     if (!string.IsNullOrWhiteSpace(optionText))
@@ -113,8 +102,14 @@ namespace BlazorQuizApp.Services
                 if (questionForm.CorrectOptionIndex >= 0 && questionForm.CorrectOptionIndex < question.Options.Count)
                 {
                     question.CorrectOptionId = question.Options[questionForm.CorrectOptionIndex].Id;
-                    await _context.SaveChangesAsync();
                 }
+                question.CorrectOptionIdsJson = JsonSerializer.Serialize(questionForm.CorrectOptionIndexes
+                    .Where(i => i >= 0 && i < question.Options.Count).Select(i => question.Options[i].Id));
+                await AddVersionAsync(question);
+                await _context.SaveChangesAsync();
+
+                if (_auditService != null)
+                    await _auditService.WriteAsync("QuestionCreated", nameof(QuizQuestion), question.Id, question.Category);
 
                 return true;
             }
@@ -146,12 +141,15 @@ namespace BlazorQuizApp.Services
                 question.Explanation = string.IsNullOrWhiteSpace(questionForm.Explanation) ? null
                     : (_validationService?.SanitizeInput(questionForm.Explanation, 2000) ?? questionForm.Explanation.Trim());
                 question.CorrectOptionId = 0;
+                question.Type = questionForm.Type;
+                question.AcceptedAnswersJson = SerializeAcceptedAnswers(questionForm.AcceptedAnswers);
+                question.CurrentVersion++;
                 question.UpdatedAt = DateTime.UtcNow;
 
                 _context.QuizOptions.RemoveRange(question.Options);
                 question.Options.Clear();
 
-                for (int i = 0; i < questionForm.OptionTexts.Count; i++)
+                for (int i = 0; question.Type != QuestionType.ShortAnswer && i < questionForm.OptionTexts.Count; i++)
                 {
                     var optionText = questionForm.OptionTexts[i];
                     if (!string.IsNullOrWhiteSpace(optionText))
@@ -166,10 +164,15 @@ namespace BlazorQuizApp.Services
                 if (questionForm.CorrectOptionIndex >= 0 && questionForm.CorrectOptionIndex < question.Options.Count)
                 {
                     question.CorrectOptionId = question.Options[questionForm.CorrectOptionIndex].Id;
-                    await _context.SaveChangesAsync();
                 }
+                question.CorrectOptionIdsJson = JsonSerializer.Serialize(questionForm.CorrectOptionIndexes
+                    .Where(i => i >= 0 && i < question.Options.Count).Select(i => question.Options[i].Id));
+                await AddVersionAsync(question);
+                await _context.SaveChangesAsync();
 
                 _cacheService?.Remove("quiz_questions_all");
+                if (_auditService != null)
+                    await _auditService.WriteAsync("QuestionUpdated", nameof(QuizQuestion), id, question.Category);
                 return true;
             }
             catch (Exception ex)
@@ -192,6 +195,8 @@ namespace BlazorQuizApp.Services
                 _context.QuizQuestions.Remove(question);
                 await _context.SaveChangesAsync();
                 _cacheService?.Clear();
+                if (_auditService != null)
+                    await _auditService.WriteAsync("QuestionDeleted", nameof(QuizQuestion), id, question.Category);
                 return true;
             }
             catch (Exception ex)
@@ -203,7 +208,8 @@ namespace BlazorQuizApp.Services
 
         public async Task<QuizResult> SubmitQuizAsync(
             List<QuizAnswer> answers, string userId, TimeSpan duration,
-            string category, bool isPracticeMode, int score)
+            string category, bool isPracticeMode, int score, int? assignmentId = null,
+            int attemptNumber = 0, int passPercentage = 0)
         {
             try
             {
@@ -219,8 +225,13 @@ namespace BlazorQuizApp.Services
                 foreach (var answer in answers)
                 {
                     var question = questions.FirstOrDefault(q => q.Id == answer.QuestionId);
-                    if (question != null && answer.SelectedOptionId == question.CorrectOptionId)
-                        correctAnswers++;
+                    if (question == null) continue;
+                    answer.IsCorrect = IsAnswerCorrect(question, answer);
+                    answer.QuestionVersionNumber = question.CurrentVersion;
+                    answer.QuestionTextSnapshot = question.QuestionText;
+                    answer.SelectedAnswerSnapshot = GetSelectedAnswerSnapshot(question, answer);
+                    answer.CorrectAnswerSnapshot = GetCorrectAnswerSnapshot(question);
+                    if (answer.IsCorrect) correctAnswers++;
                 }
 
                 var result = new QuizResult
@@ -230,12 +241,19 @@ namespace BlazorQuizApp.Services
                     Category = category,
                     TotalQuestions = answers.Count,
                     CorrectAnswers = correctAnswers,
-                    Score = score,
+                    // Never trust the score supplied by the browser. Award one point per
+                    // answer verified against the server-side question data.
+                    Score = correctAnswers,
                     IsPracticeMode = isPracticeMode,
+                    QuizAssignmentId = assignmentId,
+                    AttemptNumber = attemptNumber,
                     CompletedAt = DateTime.UtcNow,
                     Duration = duration,
                     Answers = answers
                 };
+                result.IsPassed = passPercentage > 0 && result.ScorePercentage >= passPercentage;
+                if (assignmentId.HasValue && result.IsPassed)
+                    result.CertificateCode = $"QZ-{Guid.NewGuid():N}"[..35].ToUpperInvariant();
 
                 // Only persist scored (non-practice) results
                 if (!isPracticeMode)
@@ -258,13 +276,13 @@ namespace BlazorQuizApp.Services
             }
         }
 
-        public async Task<QuizResult?> GetQuizResultByIdAsync(int resultId)
+        public async Task<QuizResult?> GetQuizResultByIdAsync(int resultId, string userId)
         {
             try
             {
                 return await _context.QuizResults
                     .Include(r => r.Answers)
-                    .FirstOrDefaultAsync(r => r.Id == resultId);
+                    .FirstOrDefaultAsync(r => r.Id == resultId && r.UserId == userId);
             }
             catch (Exception ex)
             {
@@ -393,8 +411,15 @@ namespace BlazorQuizApp.Services
                         continue;
 
                     var question = questions.First(q => q.Id == answer.QuestionId);
-                    if (!question.Options.Select(o => o.Id).Contains(answer.SelectedOptionId))
-                        return false;
+                    if (question.Type == QuestionType.ShortAnswer)
+                    {
+                        if (answer.TextAnswer?.Length > 1000) return false;
+                    }
+                    else
+                    {
+                        var selectedIds = GetSelectedIds(answer);
+                        if (selectedIds.Any(id => !question.Options.Select(o => o.Id).Contains(id))) return false;
+                    }
                 }
 
                 return true;
@@ -422,8 +447,13 @@ namespace BlazorQuizApp.Services
                         return false;
                 }
 
-                if (questionForm.OptionTexts == null || questionForm.OptionTexts.Count < 2)
+                if (questionForm.Type == QuestionType.ShortAnswer)
+                    return !string.IsNullOrWhiteSpace(questionForm.AcceptedAnswers);
+
+                if (questionForm.Type == QuestionType.MultipleSelect && questionForm.CorrectOptionIndexes.Count == 0)
                     return false;
+
+                if (questionForm.OptionTexts == null || questionForm.OptionTexts.Count < 2) return false;
 
                 foreach (var optionText in questionForm.OptionTexts)
                 {
@@ -448,5 +478,63 @@ namespace BlazorQuizApp.Services
                 return false;
             }
         }
+
+        private async Task AddVersionAsync(QuizQuestion question)
+        {
+            _context.QuestionVersions.Add(new QuestionVersion
+            {
+                QuizQuestionId = question.Id,
+                VersionNumber = question.CurrentVersion,
+                QuestionText = question.QuestionText,
+                Type = question.Type,
+                OptionsJson = JsonSerializer.Serialize(question.Options.Select(o => new { o.Id, o.Text })),
+                CorrectAnswersJson = question.Type == QuestionType.ShortAnswer
+                    ? question.AcceptedAnswersJson : question.CorrectOptionIdsJson,
+                Explanation = question.Explanation
+            });
+            await Task.CompletedTask;
+        }
+
+        public static bool IsAnswerCorrect(QuizQuestion question, QuizAnswer answer)
+        {
+            if (question.Type == QuestionType.ShortAnswer)
+            {
+                var accepted = DeserializeStrings(question.AcceptedAnswersJson);
+                var normalized = NormalizeAnswer(answer.TextAnswer);
+                return normalized.Length > 0 && accepted.Any(x => NormalizeAnswer(x) == normalized);
+            }
+            if (question.Type == QuestionType.MultipleSelect)
+            {
+                var selected = GetSelectedIds(answer).Order().ToArray();
+                var correct = DeserializeInts(question.CorrectOptionIdsJson).Order().ToArray();
+                return selected.Length > 0 && selected.SequenceEqual(correct);
+            }
+            return answer.SelectedOptionId == question.CorrectOptionId;
+        }
+
+        private static List<int> GetSelectedIds(QuizAnswer answer)
+        {
+            if (!string.IsNullOrWhiteSpace(answer.SelectedOptionIdsJson))
+            {
+                try { return JsonSerializer.Deserialize<List<int>>(answer.SelectedOptionIdsJson) ?? []; }
+                catch (JsonException) { return []; }
+            }
+            return answer.SelectedOptionId > 0 ? [answer.SelectedOptionId] : [];
+        }
+
+        private static string GetSelectedAnswerSnapshot(QuizQuestion question, QuizAnswer answer) =>
+            question.Type == QuestionType.ShortAnswer ? answer.TextAnswer ?? string.Empty :
+            string.Join("; ", question.Options.Where(o => GetSelectedIds(answer).Contains(o.Id)).Select(o => o.Text));
+
+        private static string GetCorrectAnswerSnapshot(QuizQuestion question) =>
+            question.Type == QuestionType.ShortAnswer ? string.Join("; ", DeserializeStrings(question.AcceptedAnswersJson)) :
+            string.Join("; ", question.Options.Where(o => o.Id == question.CorrectOptionId ||
+                DeserializeInts(question.CorrectOptionIdsJson).Contains(o.Id)).Select(o => o.Text));
+
+        private static string? SerializeAcceptedAnswers(string? value) => string.IsNullOrWhiteSpace(value) ? null :
+            JsonSerializer.Serialize(value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        private static List<string> DeserializeStrings(string? json) { try { return JsonSerializer.Deserialize<List<string>>(json ?? "[]") ?? []; } catch { return []; } }
+        private static List<int> DeserializeInts(string? json) { try { return JsonSerializer.Deserialize<List<int>>(json ?? "[]") ?? []; } catch { return []; } }
+        private static string NormalizeAnswer(string? value) => Regex.Replace(value?.Trim().ToLowerInvariant() ?? string.Empty, @"[^\p{L}\p{N}\s]", string.Empty);
     }
 }

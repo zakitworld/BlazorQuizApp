@@ -2,10 +2,12 @@
 @using BlazorQuizApp.Models
 @attribute [Authorize(Roles = "Admin")]
 @using BlazorQuizApp.Services
+@using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Authorization
 @inject IQuizBusinessService QuizBusinessService
 @inject INotificationService NotificationService
 @inject NavigationManager NavigationManager
+@inject ApplicationDbContext Db
 
 <div class="page-header">
     <div class="container">
@@ -27,15 +29,7 @@
             <div class="col-md-3">
                 <select class="form-select" @bind="selectedCategory">
                     <option value="">All Categories</option>
-                    <option value="General">General</option>
-                    <option value="ASP.NET Core">ASP.NET Core</option>
-                    <option value="Blazor">Blazor</option>
-                    <option value="C#">C#</option>
-                    <option value="Database">Database</option>
-                    <option value="Entity Framework">Entity Framework</option>
-                    <option value="JavaScript">JavaScript</option>
-                    <option value="Programming Concepts">Programming Concepts</option>
-                    <option value="Web Development">Web Development</option>
+                    @foreach (var category in categories) { <option value="@category.Name">@category.Name@(!category.IsActive ? " (retired)" : "")</option> }
                 </select>
             </div>
             <div class="col-md-3">
@@ -152,15 +146,7 @@ else if (!isLoading && !questions.Any())
                     <div class="col-md-6">
                         <label for="category" class="form-label">Category</label>
                         <InputSelect id="category" @bind-Value="newQuestion.Category" class="form-select">
-                            <option value="General">General</option>
-                            <option value="ASP.NET Core">ASP.NET Core</option>
-                            <option value="Blazor">Blazor</option>
-                            <option value="C#">C#</option>
-                            <option value="Database">Database</option>
-                            <option value="Entity Framework">Entity Framework</option>
-                            <option value="JavaScript">JavaScript</option>
-                            <option value="Programming Concepts">Programming Concepts</option>
-                            <option value="Web Development">Web Development</option>
+                            @foreach (var category in categories.Where(x => x.IsActive)) { <option value="@category.Name">@category.Name</option> }
                         </InputSelect>
                         <ValidationMessage For="@(() => newQuestion.Category)" />
                     </div>
@@ -247,6 +233,7 @@ else if (!isLoading && !questions.Any())
     private string searchTerm = string.Empty;
     private string selectedCategory = string.Empty;
     private string selectedDifficulty = string.Empty;
+    private List<QuizCategory> categories = [];
 
     private IEnumerable<QuizQuestion> FilteredQuestions =>
         questions.Where(q =>
@@ -257,6 +244,8 @@ else if (!isLoading && !questions.Any())
 
     protected override async Task OnInitializedAsync()
     {
+        categories = await Db.QuizCategories.AsNoTracking().OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+        if (categories.Any(x => x.IsActive) && categories.All(x => x.Name != newQuestion.Category)) newQuestion.Category = categories.First(x => x.IsActive).Name;
         await LoadQuestions();
     }
 
@@ -347,6 +336,7 @@ else if (!isLoading && !questions.Any())
     private void ResetForm()
     {
         newQuestion = new NewQuestionForm();
+        if (categories.Any(x => x.IsActive)) newQuestion.Category = categories.First(x => x.IsActive).Name;
     }
 
     private void ResetFilters()

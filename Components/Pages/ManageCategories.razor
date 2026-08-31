@@ -1,0 +1,94 @@
+@page "/admin/categories"
+@attribute [Authorize(Roles = "Admin")]
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Db
+@inject INotificationService Notifications
+
+<PageTitle>Manage Categories | Quiz App</PageTitle>
+<main class="workspace-shell category-admin">
+    <header class="workspace-header">
+        <div><span class="eyebrow">Administration</span><h1>Quiz categories</h1><p>Create topics without changing code. Retire categories safely while preserving existing questions and results.</p></div>
+        <a class="btn btn-outline-secondary" href="/admin">Back to administration</a>
+    </header>
+
+    <section class="category-create card card-body">
+        <EditForm Model="newCategory" OnValidSubmit="AddCategory">
+            <DataAnnotationsValidator />
+            <div class="category-create-row">
+                <div><label class="form-label" for="new-category">Category name</label><InputText id="new-category" class="form-control" @bind-Value="newCategory.Name" placeholder="e.g. Cloud Computing" /><ValidationMessage For="@(() => newCategory.Name)" /></div>
+                <div><label class="form-label" for="sort-order">Display order</label><InputNumber id="sort-order" class="form-control" @bind-Value="newCategory.SortOrder" /></div>
+                <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg"></i>Add category</button>
+            </div>
+        </EditForm>
+    </section>
+
+    <section class="category-list">
+        @foreach (var category in categories)
+        {
+            var count = questionCounts.GetValueOrDefault(category.Name);
+            <article class="category-row @(!category.IsActive ? "inactive" : "")">
+                <div class="category-mark"><i class="bi bi-folder2-open"></i></div>
+                <div><strong>@category.Name</strong><span>@count question@(count == 1 ? "" : "s") · order @category.SortOrder</span></div>
+                <span class="status-pill">@(category.IsActive ? "Active" : "Retired")</span>
+                <div class="category-actions">
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => Toggle(category)">@(category.IsActive ? "Retire" : "Restore")</button>
+                    @if (count == 0)
+                    {
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => Delete(category)">Delete</button>
+                    }
+                </div>
+            </article>
+        }
+    </section>
+</main>
+
+@code {
+    private QuizCategory newCategory = new();
+    private List<QuizCategory> categories = [];
+    private Dictionary<string, int> questionCounts = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override Task OnInitializedAsync() => Reload();
+
+    private async Task Reload()
+    {
+        categories = await Db.QuizCategories.AsNoTracking().OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+        questionCounts = await Db.QuizQuestions.AsNoTracking().GroupBy(x => x.Category).ToDictionaryAsync(x => x.Key, x => x.Count());
+    }
+
+    private async Task AddCategory()
+    {
+        var name = newCategory.Name.Trim();
+        if (await Db.QuizCategories.AnyAsync(x => x.Name == name)) { Notifications.ShowError("That category already exists."); return; }
+        newCategory.Name = name;
+        newCategory.CreatedAt = DateTime.UtcNow;
+        Db.QuizCategories.Add(newCategory);
+        await Db.SaveChangesAsync();
+        Notifications.ShowSuccess($"{name} is ready to use.");
+        newCategory = new QuizCategory();
+        await Reload();
+    }
+
+    private async Task Toggle(QuizCategory category)
+    {
+        var tracked = await Db.QuizCategories.FindAsync(category.Id);
+        if (tracked is null) return;
+        tracked.IsActive = !tracked.IsActive;
+        await Db.SaveChangesAsync();
+        Notifications.ShowSuccess(tracked.IsActive ? $"{tracked.Name} restored." : $"{tracked.Name} retired. Existing content was preserved.");
+        await Reload();
+    }
+
+    private async Task Delete(QuizCategory category)
+    {
+        if (await Db.QuizQuestions.AnyAsync(x => x.Category == category.Name)) { Notifications.ShowError("Retire this category instead because questions still use it."); return; }
+        var tracked = await Db.QuizCategories.FindAsync(category.Id);
+        if (tracked is null) return;
+        Db.QuizCategories.Remove(tracked);
+        await Db.SaveChangesAsync();
+        Notifications.ShowSuccess($"{tracked.Name} deleted.");
+        await Reload();
+    }
+}

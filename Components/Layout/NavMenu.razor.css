@@ -2,6 +2,32 @@
     font-size: 1.1rem;
 }
 
+.navbar-surface {
+    background: rgba(248, 250, 247, 0.96);
+    border-bottom: 1px solid #dfe6df;
+    backdrop-filter: blur(14px);
+}
+
+.navbar-surface .navbar-brand {
+    color: #14241b;
+}
+
+.navbar-surface .nav-item ::deep .nav-link,
+.navbar-surface .nav-item.dropdown ::deep .nav-link {
+    color: #536158;
+}
+
+.navbar-surface .nav-item ::deep .nav-link:hover,
+.navbar-surface .nav-item ::deep a.active {
+    color: #174e36;
+    background: #e5f0e8;
+}
+
+.navbar-surface .navbar-toggler {
+    color: #174e36;
+    border-color: #b9c8bd;
+}
+
 .bi {
     display: inline-flex;
     align-items: center;

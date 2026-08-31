@@ -310,6 +310,20 @@ namespace BlazorQuizApp.Tests.Integration
             Assert.Equal("stripe-sub-123", sub!.StripeSubscriptionId);
         }
 
+        [Fact]
+        public async Task CreateSubscriptionAsync_ReactivationUpdatesSingleRecord()
+        {
+            using var provider = DbContextHelper.CreateServiceProvider(seed: ctx =>
+                ctx.Subscriptions.Add(new Subscription { UserId = UserId, Tier = SubscriptionTier.Premium, IsActive = false }));
+            var svc = CreateService(provider);
+
+            Assert.True(await svc.CreateSubscriptionAsync(UserId, SubscriptionTier.Pro, "payment-ref"));
+            using var scope = provider.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            Assert.Single(context.Subscriptions.Where(s => s.UserId == UserId));
+            Assert.Equal(SubscriptionTier.Pro, context.Subscriptions.Single().Tier);
+        }
+
         // ── UpdateSubscriptionAsync ─────────────────────────────────────────────
 
         [Fact]

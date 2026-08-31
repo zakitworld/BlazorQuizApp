@@ -1,0 +1,100 @@
+@page "/instructor"
+@attribute [Authorize(Roles = "Admin")]
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject IAssignmentService Assignments
+@inject IQuizBusinessService Quizzes
+@inject AuthenticationStateProvider Auth
+@inject INotificationService Toast
+
+<PageTitle>Instructor workspace | Quiz App</PageTitle>
+<div class="workspace-shell">
+    <header class="workspace-header">
+        <div><span class="eyebrow">Instructor workspace</span><h1>Build learning that measures progress</h1><p>Create once, assign securely, and understand every attempt.</p></div>
+        <div class="d-flex gap-2"><a class="btn btn-outline-secondary" href="/instructor/results">View insights</a><a class="btn btn-primary" href="/question-studio"><i class="bi bi-stars me-2"></i>Question Studio</a></div>
+    </header>
+
+    @if (!string.IsNullOrEmpty(lastAccessCode))
+    {
+        <div class="callout-success"><div><strong>Assignment published</strong><span>Share this one-time access code with learners.</span></div><code>@lastAccessCode</code></div>
+    }
+
+    <div class="metric-grid">
+        <article class="metric-card"><span>Templates</span><strong>@templates.Count</strong><small>Reusable quiz blueprints</small></article>
+        <article class="metric-card"><span>Assignments</span><strong>@assignments.Count</strong><small>Scheduled learning activities</small></article>
+        <article class="metric-card"><span>Groups</span><strong>@groups.Count</strong><small>Managed learner cohorts</small></article>
+        <article class="metric-card"><span>Questions</span><strong>@questions.Count</strong><small>Available in your bank</small></article>
+    </div>
+
+    <div class="workspace-grid">
+        <section class="surface-card span-7">
+            <div class="section-heading"><div><span class="eyebrow">Step 1</span><h2>Create a quiz template</h2></div><span class="status-pill">@selectedQuestionIds.Count selected</span></div>
+            <div class="form-grid">
+                <label class="field span-2"><span>Template title</span><input class="form-control" @bind="templateTitle" maxlength="150" placeholder="e.g. C# Foundations Checkpoint" /></label>
+                <label class="field span-2"><span>Description</span><textarea class="form-control" @bind="templateDescription" rows="2" maxlength="1000"></textarea></label>
+                <label class="field"><span>Time limit</span><div class="input-group"><input type="number" class="form-control" @bind="timeLimit" min="1" max="240" /><span class="input-group-text">min</span></div></label>
+                <label class="field"><span>Pass mark</span><div class="input-group"><input type="number" class="form-control" @bind="passMark" min="1" max="100" /><span class="input-group-text">%</span></div></label>
+                <label class="toggle-field span-2"><input type="checkbox" @bind="adaptive" /><span><strong>Adaptive difficulty</strong><small>Order questions based on recent learner performance.</small></span></label>
+            </div>
+            <div class="question-picker">
+                @foreach (var q in questions)
+                {
+                    <label class="question-choice @(selectedQuestionIds.Contains(q.Id) ? "selected" : "")">
+                        <input type="checkbox" checked="@selectedQuestionIds.Contains(q.Id)" @onchange="e => ToggleQuestion(q.Id, (bool?)e.Value == true)" />
+                        <span><strong>@q.QuestionText</strong><small>@q.Category · @q.Difficulty</small></span>
+                    </label>
+                }
+            </div>
+            <button class="btn btn-primary mt-3" @onclick="CreateTemplate">Save template</button>
+        </section>
+
+        <section class="surface-card span-5">
+            <div class="section-heading"><div><span class="eyebrow">Step 2</span><h2>Schedule an assignment</h2></div></div>
+            <div class="form-grid single">
+                <label class="field"><span>Template</span><select class="form-select" @bind="selectedTemplateId"><option value="0">Choose template</option>@foreach(var t in templates){<option value="@t.Id">@t.Title</option>}</select></label>
+                <label class="field"><span>Assignment title</span><input class="form-control" @bind="assignmentTitle" maxlength="160" /></label>
+                <label class="field"><span>Group (optional)</span><select class="form-select" @bind="selectedGroupId"><option value="">Access code only</option>@foreach(var g in groups){<option value="@g.Id">@g.Name</option>}</select></label>
+                <div class="form-grid"><label class="field"><span>Opens</span><input type="datetime-local" class="form-control" @bind="availableFrom" /></label><label class="field"><span>Closes</span><input type="datetime-local" class="form-control" @bind="availableUntil" /></label></div>
+                <label class="field"><span>Attempts allowed</span><input type="number" class="form-control" @bind="maxAttempts" min="1" max="20" /></label>
+            </div>
+            <button class="btn btn-dark w-100 mt-3" @onclick="CreateAssignment">Publish assignment</button>
+        </section>
+
+        <section class="surface-card span-5">
+            <div class="section-heading"><div><span class="eyebrow">Cohorts</span><h2>Learner groups</h2></div></div>
+            <div class="inline-create"><input class="form-control" @bind="groupName" placeholder="New group name" /><button class="btn btn-outline-primary" @onclick="CreateGroup">Add</button></div>
+            @foreach(var group in groups)
+            {
+                <div class="list-row"><div><strong>@group.Name</strong><small>@group.Members.Count members</small></div><div class="inline-create compact"><input class="form-control" @bind="memberEmails[group.Id]" placeholder="member@email.com" /><button class="btn btn-sm btn-light" @onclick="() => AddMember(group.Id)">Invite</button></div></div>
+            }
+        </section>
+
+        <section class="surface-card span-7">
+            <div class="section-heading"><div><span class="eyebrow">Published</span><h2>Assignment activity</h2></div><a href="/api/instructor/results.csv" class="btn btn-sm btn-outline-secondary">Export CSV</a></div>
+            @foreach(var a in assignments)
+            {
+                <div class="assignment-row"><div><span class="status-dot"></span><div><strong>@a.Title</strong><small>@a.QuizTemplate.Title · @(a.UserGroup?.Name ?? "Access code")</small></div></div><div class="text-end"><span>@a.MaxAttempts attempt@(a.MaxAttempts == 1 ? "" : "s")</span><small>Code ends @a.AccessCodeHint</small></div></div>
+            }
+        </section>
+    </div>
+</div>
+
+@code {
+    private string ownerId = "", templateTitle = "", templateDescription = "", assignmentTitle = "", groupName = "", lastAccessCode = "";
+    private int timeLimit = 30, passMark = 70, selectedTemplateId, maxAttempts = 1;
+    private int? selectedGroupId;
+    private bool adaptive;
+    private DateTime availableFrom = DateTime.Now, availableUntil = DateTime.Now.AddDays(7);
+    private List<QuizQuestion> questions = []; private List<QuizTemplate> templates = []; private List<QuizAssignment> assignments = []; private List<UserGroup> groups = [];
+    private HashSet<int> selectedQuestionIds = []; private Dictionary<int,string> memberEmails = [];
+    protected override async Task OnInitializedAsync(){ ownerId=(await Auth.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier)??""; await Reload(); }
+    private async Task Reload(){ questions=await Quizzes.GetQuestionsAsync(); templates=await Assignments.GetTemplatesAsync(ownerId); assignments=await Assignments.GetAssignmentsForOwnerAsync(ownerId); groups=await Assignments.GetGroupsAsync(ownerId); foreach(var g in groups) memberEmails.TryAdd(g.Id,""); }
+    private void ToggleQuestion(int id,bool value){if(value)selectedQuestionIds.Add(id);else selectedQuestionIds.Remove(id);}
+    private async Task CreateTemplate(){try{await Assignments.CreateTemplateAsync(ownerId,templateTitle,templateDescription,timeLimit,passMark,adaptive,selectedQuestionIds);templateTitle="";selectedQuestionIds.Clear();await Reload();Toast.ShowSuccess("Template created.");}catch(Exception ex){Toast.ShowError(ex.Message);}}
+    private async Task CreateAssignment(){try{var result=await Assignments.CreateAssignmentAsync(ownerId,selectedTemplateId,assignmentTitle,selectedGroupId,availableFrom,availableUntil,maxAttempts);lastAccessCode=result.AccessCode;assignmentTitle="";await Reload();}catch(Exception ex){Toast.ShowError(ex.Message);}}
+    private async Task CreateGroup(){if(string.IsNullOrWhiteSpace(groupName))return;await Assignments.CreateGroupAsync(ownerId,groupName,null);groupName="";await Reload();}
+    private async Task AddMember(int groupId){if(await Assignments.AddGroupMemberAsync(groupId,ownerId,memberEmails[groupId])){memberEmails[groupId]="";await Reload();Toast.ShowSuccess("Member added.");}else Toast.ShowError("No confirmed user was found with that email.");}
+}

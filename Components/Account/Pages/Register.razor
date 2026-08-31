@@ -21,11 +21,12 @@
 
 <PageTitle>Sign Up | Blazor Quiz App</PageTitle>
 
-<div class="auth-bg">
-    <div class="auth-card">
+<div class="auth-shell">
+    <aside class="auth-story register-story"><a class="auth-brand" href="/"><span>Q</span>BlazorQuiz</a><div><span class="eyebrow">Start your journey</span><h1>Build knowledge you can see.</h1><p>Adaptive practice, clear progress, instructor assignments, and achievements in one focused space.</p></div><div class="auth-benefits"><span><i class="bi bi-check-circle-fill"></i>Free learning account</span><span><i class="bi bi-check-circle-fill"></i>Progress and history</span><span><i class="bi bi-check-circle-fill"></i>Shareable certificates</span></div></aside>
+    <main class="auth-panel"><div class="auth-modal-card">
         <div class="auth-logo">Q</div>
-        <h1 class="auth-title">Create Account</h1>
-        <p class="auth-subtitle">Join us and start quizzing!</p>
+        <h1 class="auth-title">Create your account</h1>
+        <p class="auth-subtitle">A few details and your learning space is ready.</p>
 
         <StatusMessage Message="@errorMessage" />
 
@@ -52,7 +53,8 @@
                 <i class="bi bi-shield-check auth-input-icon"></i>
             </div>
 
-            <button type="submit" class="w-100 btn btn-lg btn-primary mb-3">Sign Up</button>
+            <small class="password-hint">Use at least 8 characters with uppercase, lowercase, a number, and a symbol.</small>
+            <button type="submit" class="w-100 btn btn-lg btn-primary mb-3 mt-3">Create free account <i class="bi bi-arrow-right ms-2"></i></button>
 
             <div class="text-center mt-3">
                 <p class="mb-0 text-secondary small">Already have an account? 
@@ -60,7 +62,7 @@
                 </p>
             </div>
         </form>
-    </div>
+    </div></main>
 </div>
 
 @code {
@@ -75,9 +77,13 @@
 
     protected override void OnInitialized()
     {
-        if (!string.IsNullOrEmpty(Error))
+        if (Error == "InvalidRegistrationData")
         {
-            errorMessage = Error;
+            errorMessage = "The registration details are invalid or the passwords do not match.";
+        }
+        else if (!string.IsNullOrEmpty(Error))
+        {
+            errorMessage = "Registration could not be completed. Please review your details.";
         }
     }
 

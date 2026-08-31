@@ -150,29 +150,23 @@ namespace BlazorQuizApp.Services
                 using var scope = _scopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-                // Deactivate existing subscriptions
-                var existingSubscriptions = await context.Subscriptions
-                    .Where(s => s.UserId == userId && s.IsActive)
-                    .ToListAsync();
-
-                foreach (var sub in existingSubscriptions)
+                var subscription = await context.Subscriptions.SingleOrDefaultAsync(s => s.UserId == userId);
+                if (subscription == null)
                 {
-                    sub.IsActive = false;
-                    sub.EndDate = DateTime.UtcNow;
-                    sub.UpdatedAt = DateTime.UtcNow;
+                    subscription = new Subscription { UserId = userId };
+                    context.Subscriptions.Add(subscription);
                 }
 
-                // Create new subscription
-                var subscription = new Subscription
-                {
-                    UserId = userId,
-                    Tier = tier,
-                    StripeSubscriptionId = stripeSubscriptionId,
-                    IsActive = true,
-                    StartDate = DateTime.UtcNow
-                };
+                subscription.Tier = tier;
+                subscription.StripeSubscriptionId = stripeSubscriptionId;
+                subscription.IsActive = true;
+                subscription.StartDate = DateTime.UtcNow;
+                subscription.EndDate = null;
+                subscription.UpdatedAt = DateTime.UtcNow;
+                await context.SaveChangesAsync();
 
-                context.Subscriptions.Add(subscription);
+                context.AuditLogs.Add(new AuditLog { UserId = userId, Action = "SubscriptionActivated",
+                    EntityType = nameof(Subscription), EntityId = subscription.Id, Details = tier.ToString() });
                 await context.SaveChangesAsync();
 
                 _logger.LogInformation("Created {Tier} subscription for user {UserId}", tier, userId);
@@ -202,6 +196,10 @@ namespace BlazorQuizApp.Services
                 subscription.UpdatedAt = DateTime.UtcNow;
                 await context.SaveChangesAsync();
 
+                context.AuditLogs.Add(new AuditLog { UserId = userId, Action = "SubscriptionUpdated",
+                    EntityType = nameof(Subscription), EntityId = subscription.Id, Details = tier.ToString() });
+                await context.SaveChangesAsync();
+
                 _logger.LogInformation("Updated subscription to {Tier} for user {UserId}", tier, userId);
                 return true;
             }
@@ -228,6 +226,10 @@ namespace BlazorQuizApp.Services
                 subscription.IsActive = false;
                 subscription.EndDate = DateTime.UtcNow;
                 subscription.UpdatedAt = DateTime.UtcNow;
+                await context.SaveChangesAsync();
+
+                context.AuditLogs.Add(new AuditLog { UserId = userId, Action = "SubscriptionCancelled",
+                    EntityType = nameof(Subscription), EntityId = subscription.Id });
                 await context.SaveChangesAsync();
 
                 _logger.LogInformation("Cancelled subscription for user {UserId}", userId);

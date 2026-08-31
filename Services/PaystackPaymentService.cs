@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using PayStack.Net;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlazorQuizApp.Services
 {
@@ -21,16 +22,22 @@ namespace BlazorQuizApp.Services
         private readonly ILogger<PaystackPaymentService> _logger;
         private readonly PayStackApi _paystackApi;
         private readonly string _baseUrl;
+        private readonly ApplicationDbContext _context;
+        private readonly IAuditService _auditService;
 
         public PaystackPaymentService(
             IOptions<PaystackSettings> paystackSettings,
             IOptions<AppSettings> appSettings,
             ISubscriptionService subscriptionService,
-            ILogger<PaystackPaymentService> logger)
+            ILogger<PaystackPaymentService> logger,
+            ApplicationDbContext context,
+            IAuditService auditService)
         {
             _paystackSettings = paystackSettings.Value;
             _subscriptionService = subscriptionService;
             _logger = logger;
+            _context = context;
+            _auditService = auditService;
             _baseUrl = string.IsNullOrWhiteSpace(appSettings.Value.BaseUrl)
                 ? "https://localhost:7233"
                 : appSettings.Value.BaseUrl.TrimEnd('/');
@@ -67,12 +74,26 @@ namespace BlazorQuizApp.Services
                     Metadata = metadata
                 };
 
+                var payment = new PaymentTransaction
+                {
+                    Reference = request.Reference,
+                    UserId = userId,
+                    Email = userEmail,
+                    Tier = tier,
+                    AmountMinor = amount * 100,
+                    Currency = "GHS"
+                };
+                _context.PaymentTransactions.Add(payment);
+                await _context.SaveChangesAsync();
+
                 var response = _paystackApi.Transactions.Initialize(request);
 
                 if (response.Status)
                 {
                     _logger.LogInformation("Paystack payment initialized for user {UserId}, tier {Tier}, reference {Reference}",
                         userId, tier, request.Reference);
+                    await _auditService.WriteAsync("PaymentInitialized", nameof(PaymentTransaction),
+                        details: request.Reference, userId: userId, userName: userEmail);
                     return response.Data.AuthorizationUrl;
                 }
                 else
@@ -96,13 +117,31 @@ namespace BlazorQuizApp.Services
 
                 if (response.Status && response.Data.Status == "success")
                 {
+                    var payment = await _context.PaymentTransactions
+                        .SingleOrDefaultAsync(p => p.Reference == reference);
+                    if (payment == null)
+                    {
+                        _logger.LogWarning("Verified payment {Reference} was not initialized by this application", reference);
+                        return false;
+                    }
+                    if (payment.Status == PaymentStatus.Succeeded)
+                        return true;
+
                     var metadata = response.Data.Metadata;
                     var userId = metadata["userId"]?.ToString() ?? string.Empty;
                     var tierString = metadata["tier"]?.ToString() ?? string.Empty;
 
-                    if (Enum.TryParse<SubscriptionTier>(tierString, out var tier))
+                    if (Enum.TryParse<SubscriptionTier>(tierString, out var tier) &&
+                        userId == payment.UserId && tier == payment.Tier)
                     {
-                        await _subscriptionService.CreateSubscriptionAsync(userId, tier, reference);
+                        if (!await _subscriptionService.CreateSubscriptionAsync(userId, tier, reference))
+                            return false;
+
+                        payment.Status = PaymentStatus.Succeeded;
+                        payment.ProcessedAt = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                        await _auditService.WriteAsync("PaymentSucceeded", nameof(PaymentTransaction),
+                            details: reference, userId: userId, userName: payment.Email);
                         _logger.LogInformation("Payment verified and subscription activated for user {UserId}, tier {Tier}", userId, tier);
                         return true;
                     }
@@ -193,8 +232,20 @@ namespace BlazorQuizApp.Services
 
         private bool VerifyWebhookSignature(string payload, string signature)
         {
+            if (string.IsNullOrWhiteSpace(_paystackSettings.SecretKey) ||
+                string.IsNullOrWhiteSpace(signature) || signature.Length != 128)
+                return false;
+
             var hash = ComputeHash(payload, _paystackSettings.SecretKey);
-            return hash.Equals(signature, StringComparison.OrdinalIgnoreCase);
+            try
+            {
+                return CryptographicOperations.FixedTimeEquals(
+                    Convert.FromHexString(hash), Convert.FromHexString(signature));
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
 
         private string ComputeHash(string payload, string secret)
@@ -210,8 +261,7 @@ namespace BlazorQuizApp.Services
 
         private string GenerateReference(string userId)
         {
-            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            return $"QZ-{userId.Substring(0, Math.Min(8, userId.Length))}-{timestamp}";
+            return $"QZ-{userId[..Math.Min(8, userId.Length)]}-{Guid.NewGuid():N}";
         }
 
         private int GetTierAmount(SubscriptionTier tier)

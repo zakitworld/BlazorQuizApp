@@ -1,334 +1,41 @@
 @page "/"
-@inject NavigationManager NavigationManager
 
-<PageTitle>Quiz App</PageTitle>
-
-<div class="home-page">
-    <section class="hero-section py-5 text-white mb-5">
-        <div class="container py-5">
-            <div class="row align-items-center">
-                <div class="col-lg-6 animate__animated animate__fadeInLeft">
-                    <h1 class="display-2 fw-extrabold mb-4">
-                        Master Your <span class="text-highlight">Knowledge</span>
-                    </h1>
-                    <p class="lead mb-5 opacity-90 text-light-gray">
-                        Challenge yourself with interactive quizzes, track your progress in real-time, and climb the
-                        global leaderboard.
-                    </p>
-                    <div class="d-flex flex-wrap gap-3">
-                        <NavLink href="quiz" class="btn btn-primary-premium btn-lg px-4 py-2 px-sm-5 py-sm-3">
-                            <i class="bi bi-rocket-takeoff me-2"></i>Get Started
-                        </NavLink>
-                        <NavLink href="pricing" class="btn btn-outline-light-premium btn-lg px-4 py-2 px-sm-5 py-sm-3">
-                            <i class="bi bi-star me-2"></i>Go Pro
-                        </NavLink>
-                    </div>
-                </div>
-                <div class="col-lg-6 d-none d-lg-block animate__animated animate__zoomIn">
-                    <div class="hero-image-wrapper p-4">
-                        <img src="images/hero-quiz.svg" alt="Quiz Hero" class="img-fluid floating-animation"
-                            onerror="this.src='https://illustrations.popsy.co/white/idea.svg'">
-                    </div>
-                </div>
+<PageTitle>BlazorQuiz — Learn with momentum</PageTitle>
+<div class="landing-page">
+    <section class="landing-hero">
+        <div class="landing-copy">
+            <span class="hero-kicker"><i class="bi bi-lightning-charge-fill"></i> Learn. Measure. Improve.</span>
+            <h1>Knowledge grows when progress feels visible.</h1>
+            <p>Focused quizzes, adaptive assignments, meaningful analytics, and real achievements—built into one calm learning space.</p>
+            <div class="hero-actions">
+                <AuthorizeView>
+                    <Authorized><a class="btn btn-primary btn-lg" href="/assignments">Continue learning <i class="bi bi-arrow-right"></i></a></Authorized>
+                    <NotAuthorized><a class="btn btn-primary btn-lg" href="/Account/Register">Start learning free <i class="bi bi-arrow-right"></i></a></NotAuthorized>
+                </AuthorizeView>
+                <a class="btn btn-quiet btn-lg" href="/quiz"><i class="bi bi-play-circle"></i> Try a quiz</a>
             </div>
+            <div class="hero-proof"><div><strong>Adaptive</strong><span>Questions meet your level</span></div><div><strong>Actionable</strong><span>Insights beyond a score</span></div><div><strong>Rewarding</strong><span>Certificates that mark growth</span></div></div>
         </div>
-        <div class="hero-wave">
-            <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120"
-                preserveAspectRatio="none">
-                <path
-                    d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"
-                    class="shape-fill"></path>
-            </svg>
+        <div class="hero-visual" aria-label="Learning progress preview">
+            <div class="visual-grid"></div>
+            <article class="floating-panel progress-panel"><span class="eyebrow">Weekly momentum</span><strong>+18%</strong><div class="mini-bars"><i style="height:30%"></i><i style="height:48%"></i><i style="height:40%"></i><i style="height:72%"></i><i style="height:92%"></i></div></article>
+            <article class="floating-panel question-panel"><span class="difficulty-chip">Adaptive · Medium</span><h3>Which pattern keeps services loosely coupled?</h3><div class="mini-answer selected"><span>A</span>Dependency injection</div><div class="mini-answer"><span>B</span>Global state</div></article>
+            <div class="achievement-bubble"><i class="bi bi-award-fill"></i><span><strong>Milestone earned</strong>ASP.NET Core Foundations</span></div>
         </div>
     </section>
 
-    <div class="container pb-5">
-        <div class="section-header text-center mb-4 animate__animated animate__fadeIn">
-            <span class="badge bg-primary-soft text-primary px-3 py-2 mb-3 rounded-pill">TOPICS</span>
-            <h2 class="display-5 fw-bold">Choose a Subject</h2>
-            <p class="text-muted">Pick a topic and test your knowledge, or take the full mixed quiz.</p>
-        </div>
+    <section class="trust-strip"><span>One workspace for</span><strong>Independent learners</strong><i></i><strong>Instructors</strong><i></i><strong>Training teams</strong><i></i><strong>Schools</strong></section>
 
-        <div class="row g-3 mb-5 justify-content-center">
-            <div class="col-6 col-md-4 col-lg-2">
-                <a href="/quiz" class="topic-card text-decoration-none d-block p-3 text-center h-100">
-                    <div class="topic-icon mb-2">🎯</div>
-                    <div class="fw-semibold">All Topics</div>
-                </a>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <a href="/quiz?category=C%23" class="topic-card text-decoration-none d-block p-3 text-center h-100">
-                    <div class="topic-icon mb-2">💻</div>
-                    <div class="fw-semibold">C#</div>
-                </a>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <a href="/quiz?category=ASP.NET%20Core" class="topic-card text-decoration-none d-block p-3 text-center h-100">
-                    <div class="topic-icon mb-2">🌐</div>
-                    <div class="fw-semibold">ASP.NET Core</div>
-                </a>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <a href="/quiz?category=Blazor" class="topic-card text-decoration-none d-block p-3 text-center h-100">
-                    <div class="topic-icon mb-2">🔥</div>
-                    <div class="fw-semibold">Blazor</div>
-                </a>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <a href="/quiz?category=JavaScript" class="topic-card text-decoration-none d-block p-3 text-center h-100">
-                    <div class="topic-icon mb-2">⚡</div>
-                    <div class="fw-semibold">JavaScript</div>
-                </a>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <a href="/quiz?category=Web%20Development" class="topic-card text-decoration-none d-block p-3 text-center h-100">
-                    <div class="topic-icon mb-2">🕸️</div>
-                    <div class="fw-semibold">Web Development</div>
-                </a>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <a href="/quiz?category=Database" class="topic-card text-decoration-none d-block p-3 text-center h-100">
-                    <div class="topic-icon mb-2">🗄️</div>
-                    <div class="fw-semibold">Database</div>
-                </a>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <a href="/quiz?category=Entity%20Framework" class="topic-card text-decoration-none d-block p-3 text-center h-100">
-                    <div class="topic-icon mb-2">🗃️</div>
-                    <div class="fw-semibold">Entity Framework</div>
-                </a>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <a href="/quiz?category=Programming%20Concepts" class="topic-card text-decoration-none d-block p-3 text-center h-100">
-                    <div class="topic-icon mb-2">📚</div>
-                    <div class="fw-semibold">Programming Concepts</div>
-                </a>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <a href="/quiz?category=General" class="topic-card text-decoration-none d-block p-3 text-center h-100">
-                    <div class="topic-icon mb-2">🧠</div>
-                    <div class="fw-semibold">General</div>
-                </a>
-            </div>
+    <section class="feature-story">
+        <div class="story-heading"><span class="eyebrow">A better learning loop</span><h2>Every attempt should tell you what to do next.</h2></div>
+        <div class="story-grid">
+            <article><span>01</span><i class="bi bi-compass"></i><h3>Start at the right level</h3><p>Adaptive assignments respond to performance during the attempt, keeping challenge productive.</p></article>
+            <article><span>02</span><i class="bi bi-graph-up-arrow"></i><h3>See the signal</h3><p>Category trends, question-level insights, and history turn scores into a useful direction.</p></article>
+            <article><span>03</span><i class="bi bi-patch-check"></i><h3>Mark real progress</h3><p>Pass milestones, earn verifiable certificates, and keep a record of every achievement.</p></article>
         </div>
+    </section>
 
-        <div class="section-header text-center mb-5 animate__animated animate__fadeIn">
-            <span class="badge bg-primary-soft text-primary px-3 py-2 mb-3 rounded-pill">FEATURES</span>
-            <h2 class="display-5 fw-bold">Everything You Need</h2>
-        </div>
+    <section class="topic-rail"><div><span class="eyebrow">Explore the question bank</span><h2>Choose a path. Build momentum.</h2></div><div class="topic-pills"><a href="/quiz?category=C%23">C#</a><a href="/quiz?category=ASP.NET%20Core">ASP.NET Core</a><a href="/quiz?category=Blazor">Blazor</a><a href="/quiz?category=JavaScript">JavaScript</a><a href="/quiz?category=Database">Databases</a><a href="/quiz">All topics <i class="bi bi-arrow-right"></i></a></div></section>
 
-        <div class="row g-4">
-            <div class="col-md-6 col-lg-3 animate__animated animate__fadeInUp" style="animation-delay: 0.1s">
-                <div class="feature-card-modern p-4 h-100 text-center">
-                    <div class="icon-circle bg-primary-soft text-primary mb-4">
-                        <i class="bi bi-lightning-charge"></i>
-                    </div>
-                    <h4>Fast & Accurate</h4>
-                    <p class="text-muted">Experience lightning-fast quiz loading and real-time result calculations.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-3 animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
-                <div class="feature-card-modern p-4 h-100 text-center">
-                    <div class="icon-circle bg-warning-soft text-warning mb-4">
-                        <i class="bi bi-trophy"></i>
-                    </div>
-                    <h4>Competitive</h4>
-                    <p class="text-muted">Compete with users worldwide and secure your place on the leaderboard.</p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-3 animate__animated animate__fadeInUp" style="animation-delay: 0.3s">
-                <div class="feature-card-modern p-4 h-100 text-center">
-                    <div class="icon-circle bg-info-soft text-info mb-4">
-                        <i class="bi bi-bar-chart"></i>
-                    </div>
-                    <h4>Analytics</h4>
-                    <p class="text-muted">Detailed statistics and performance tracking to help you improve every day.
-                    </p>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-3 animate__animated animate__fadeInUp" style="animation-delay: 0.4s">
-                <div class="feature-card-modern p-4 h-100 text-center">
-                    <div class="icon-circle bg-success-soft text-success mb-4">
-                        <i class="bi bi-shield-check"></i>
-                    </div>
-                    <h4>Verified</h4>
-                    <p class="text-muted">Quality checked questions by experts to ensure the best learning experience.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
+    <section class="home-cta"><div><span class="eyebrow">Your next milestone</span><h2>Make the next twenty minutes count.</h2></div><AuthorizeView><Authorized><a class="btn btn-light btn-lg" href="/assignments">Open learning hub</a></Authorized><NotAuthorized><a class="btn btn-light btn-lg" href="/Account/Register">Create free account</a></NotAuthorized></AuthorizeView></section>
 </div>
-
-<style>
-    :root {
-        --primary-gradient: linear-gradient(135deg, #0d6efd 0%, #004dc0 100%);
-        --soft-blue: rgba(13, 110, 253, 0.1);
-        --soft-yellow: rgba(255, 193, 7, 0.1);
-        --soft-cyan: rgba(13, 202, 240, 0.1);
-        --soft-green: rgba(25, 135, 84, 0.1);
-    }
-
-    .fw-extrabold {
-        font-weight: 800;
-    }
-
-    /* Scale down display-2 heading on small screens */
-    @@media (max-width: 575.98px) {
-        .hero-section h1.display-2 {
-            font-size: 2.2rem;
-        }
-    }
-
-    .text-light-gray {
-        color: #e9ecef;
-    }
-
-    .opacity-90 {
-        opacity: 0.9;
-    }
-
-    .hero-section {
-        background: var(--primary-gradient);
-        position: relative;
-        overflow: hidden;
-        min-height: 60vh;
-        display: flex;
-        align-items: center;
-        /* Pull hero up to cover the main padding-top so gradient starts behind navbar */
-        margin-top: -56px;
-        padding-top: calc(56px + 4rem) !important;
-    }
-
-    .text-highlight {
-        color: #0dcaf0;
-        text-shadow: 0 0 20px rgba(13, 202, 240, 0.3);
-    }
-
-    .btn-primary-premium {
-        background: #fff;
-        color: #0d6efd;
-        border: none;
-        font-weight: 700;
-        transition: all 0.3s ease;
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .btn-primary-premium:hover {
-        background: #e9ecef;
-        transform: translateY(-3px);
-        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
-    }
-
-    .btn-outline-light-premium {
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        color: #fff;
-        font-weight: 700;
-        transition: all 0.3s ease;
-    }
-
-    .btn-outline-light-premium:hover {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: #fff;
-        transform: translateY(-3px);
-    }
-
-    .hero-wave {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        overflow: hidden;
-        line-height: 0;
-        transform: rotate(180deg);
-    }
-
-    .hero-wave svg {
-        position: relative;
-        display: block;
-        width: calc(130% + 1.3px);
-        height: 100px;
-    }
-
-    .hero-wave .shape-fill {
-        fill: #FFFFFF;
-    }
-
-    .floating-animation {
-        animation: floating 3s ease-in-out infinite;
-    }
-
-    @@keyframes floating {
-        0% {
-            transform: translateY(0px);
-        }
-
-        50% {
-            transform: translateY(-20px);
-        }
-
-        100% {
-            transform: translateY(0px);
-        }
-    }
-
-    .bg-primary-soft {
-        background: var(--soft-blue);
-    }
-
-    .bg-warning-soft {
-        background: var(--soft-yellow);
-    }
-
-    .bg-info-soft {
-        background: var(--soft-cyan);
-    }
-
-    .bg-success-soft {
-        background: var(--soft-green);
-    }
-
-    .feature-card-modern {
-        background: #fff;
-        border-radius: 20px;
-        border: 1px solid rgba(0, 0, 0, 0.05);
-        transition: all 0.3s ease;
-    }
-
-    .feature-card-modern:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
-        border-color: var(--soft-blue);
-    }
-
-    .icon-circle {
-        width: 64px;
-        height: 64px;
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.8rem;
-        margin: 0 auto;
-    }
-
-    .topic-card {
-        background: #fff;
-        border-radius: 16px;
-        border: 2px solid rgba(13, 110, 253, 0.1);
-        color: #333;
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-
-    .topic-card:hover {
-        border-color: #0d6efd;
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(13, 110, 253, 0.15);
-        color: #0d6efd;
-    }
-
-    .topic-icon {
-        font-size: 2rem;
-    }
-</style>

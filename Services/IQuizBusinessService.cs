@@ -18,8 +18,9 @@ namespace BlazorQuizApp.Services
         Task<bool> UpdateQuestionAsync(int id, NewQuestionForm questionForm);
         Task<bool> DeleteQuestionAsync(int id);
         Task<QuizResult> SubmitQuizAsync(List<QuizAnswer> answers, string userId, TimeSpan duration,
-            string category, bool isPracticeMode, int score);
-        Task<QuizResult?> GetQuizResultByIdAsync(int resultId);
+            string category, bool isPracticeMode, int score, int? assignmentId = null,
+            int attemptNumber = 0, int passPercentage = 0);
+        Task<QuizResult?> GetQuizResultByIdAsync(int resultId, string userId);
         Task<List<QuizResult>> GetUserQuizHistoryAsync(string userId);
         Task<List<QuizResult>> GetLeaderboardAsync(int topCount = 10, string? category = null);
         Task<List<CategoryStat>> GetCategoryStatsAsync(string userId);

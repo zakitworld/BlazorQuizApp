@@ -180,3 +180,35 @@ This project is licensed under the MIT License.
 ## 📞 Support
 
 For support and questions, please open an issue in the repository. 
+# Blazor Quiz App
+
+Production-oriented Blazor Server quiz platform with ASP.NET Core Identity, SQL Server, subscriptions, Paystack payments, auditing, analytics, and role-based administration.
+
+## Learning and assignment platform
+
+- Reusable quiz templates with question-bank selection
+- Scheduled assignments with secure access codes and group targeting
+- Attempt limits, pass marks, and adaptive difficulty ordering
+- Instructor performance and question-level analytics
+- CSV result export and printable completion certificates
+- Responsive learner hub and focused assignment-taking experience
+- Instructor-reviewed Question Studio with source-based draft generation and duplicate/quality checks
+- Single-choice, multiple-select, true/false, and short-answer formats
+- Immutable question versions and attempt snapshots
+- Live adaptive difficulty selection during each attempt
+
+Administrators can open `/instructor`; learners use `/assignments`.
+
+## Local setup
+
+```powershell
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<sql-server-connection>"
+dotnet user-secrets set "EmailSettings:SendGridApiKey" "<sendgrid-key>"
+dotnet user-secrets set "Paystack:SecretKey" "<paystack-secret>"
+dotnet ef database update
+dotnet run
+```
+
+Local secrets are stored outside the repository. See [docs/OPERATIONS.md](docs/OPERATIONS.md) for deployment, backups, monitoring, and required production settings.
+
+When SendGrid is not configured, Development registrations are auto-confirmed so local testing remains usable. Production never uses this fallback and requires the email secrets above.

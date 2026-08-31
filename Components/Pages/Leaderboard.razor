@@ -4,171 +4,39 @@
 @inject IQuizBusinessService QuizBusinessService
 @inject INotificationService NotificationService
 
-<PageTitle>Leaderboard</PageTitle>
-
-<div class="page-header">
-    <div class="container">
-        <div class="d-flex align-items-center gap-3 flex-wrap">
-            <h1 class="mb-0"><i class="bi bi-trophy-fill text-warning me-2"></i>Leaderboard</h1>
-            <button class="btn btn-outline-light btn-sm ms-auto" @onclick="LoadLeaderboard">
-                <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-            </button>
-        </div>
-    </div>
-</div>
-
-<div class="container pb-5">
-
-@* Category filter tabs *@
-<div class="mb-4 overflow-auto">
-    <div class="d-flex gap-2 flex-nowrap pb-1">
-        <button class="btn btn-sm @(selectedCategory == null ? "btn-primary" : "btn-outline-secondary")"
-                @onclick='() => FilterBy(null)'>All Topics</button>
-        @foreach (var cat in categories)
-        {
-            <button class="btn btn-sm @(selectedCategory == cat ? "btn-primary" : "btn-outline-secondary")"
-                    @onclick="() => FilterBy(cat)">
-                @GetCategoryIcon(cat) @cat
-            </button>
-        }
-    </div>
-</div>
-
-<LoadingSpinner IsLoading="@isLoading" Message="Loading leaderboard..." />
-
-@if (!isLoading)
-{
-    @if (leaderboard.Any())
+<PageTitle>Leaderboard | BlazorQuiz</PageTitle>
+<div class="data-page-shell leaderboard-page">
+    <header class="data-page-header"><div><span class="eyebrow">Community performance</span><h1>The leaderboard</h1><p>Celebrate consistency, accuracy, and the learners setting the pace.</p></div><button class="btn btn-outline-secondary" @onclick="LoadLeaderboard"><i class="bi bi-arrow-clockwise me-2"></i>Refresh</button></header>
+    <nav class="filter-rail" aria-label="Leaderboard category">
+        <button class="@(selectedCategory==null?"active":"")" @onclick="() => FilterBy(null)">All topics</button>
+        @foreach(var category in categories){<button class="@(selectedCategory==category?"active":"")" @onclick="() => FilterBy(category)">@category</button>}
+    </nav>
+    <LoadingSpinner IsLoading="@isLoading" Message="Ranking top performers..." />
+    @if(!isLoading && leaderboard.Any())
     {
-        <div class="row">
-            <div class="col-lg-9 mx-auto">
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            Top Performers @(selectedCategory != null ? $"— {selectedCategory}" : "— All Topics")
-                        </h5>
-                    </div>
-                    <div class="list-group list-group-flush">
-                        @for (int i = 0; i < leaderboard.Count; i++)
-                        {
-                            var result = leaderboard[i];
-                            var rank = i + 1;
-                            <div class="list-group-item px-4 py-3">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="rank-badge @GetRankClass(rank)">
-                                        @GetRankIcon(rank)
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-semibold">
-                                            @(string.IsNullOrEmpty(result.UserName) ? "Anonymous" : result.UserName)
-                                        </div>
-                                        <small class="text-muted">
-                                            @if (!string.IsNullOrEmpty(result.Category))
-                                            {
-                                                <span class="badge bg-primary me-1">@result.Category</span>
-                                            }
-                                            @result.CompletedAt.ToString("MMM dd, yyyy")
-                                            · @result.Duration.ToString(@"mm\:ss")
-                                        </small>
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="fw-bold text-success fs-5">
-                                            @result.ScorePercentage.ToString("F0")%
-                                        </div>
-                                        <small class="text-muted">
-                                            @result.CorrectAnswers/@result.TotalQuestions correct
-                                        </small>
-                                        @if (result.Score > 0)
-                                        {
-                                            <div>
-                                                <span class="badge bg-warning text-dark">
-                                                    <i class="bi bi-star-fill me-1"></i>@result.Score pts
-                                                </span>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
+        <section class="podium-grid">
+            @foreach(var entry in leaderboard.Take(3).Select((result,index)=>new{result,rank=index+1}))
+            {
+                <article class="podium-card rank-@entry.rank"><div class="podium-rank">@GetRankIcon(entry.rank)</div><div class="avatar-token">@Initials(entry.result.UserName)</div><span class="podium-place">#@entry.rank</span><h2>@DisplayName(entry.result.UserName)</h2><strong>@entry.result.ScorePercentage.ToString("F0")%</strong><small>@entry.result.CorrectAnswers/@entry.result.TotalQuestions correct · @entry.result.Score pts</small></article>
+            }
+        </section>
+        <section class="ranking-surface">
+            <div class="ranking-head"><span>Rank</span><span>Learner</span><span>Topic</span><span>Accuracy</span><span>Points</span></div>
+            @foreach(var entry in leaderboard.Skip(3).Select((result,index)=>new{result,rank=index+4}))
+            {
+                <div class="ranking-row"><strong>#@entry.rank</strong><div class="learner-cell"><div class="avatar-token small">@Initials(entry.result.UserName)</div><span><b>@DisplayName(entry.result.UserName)</b><small>@entry.result.CompletedAt.ToString("MMM d, yyyy") · @entry.result.Duration.ToString(@"mm\:ss")</small></span></div><span class="status-pill">@(string.IsNullOrWhiteSpace(entry.result.Category)?"Mixed":entry.result.Category)</span><div class="accuracy-cell"><span>@entry.result.ScorePercentage.ToString("F0")%</span><i><b style="width:@entry.result.ScorePercentage%"></b></i></div><strong>@entry.result.Score</strong></div>
+            }
+        </section>
     }
-    else
-    {
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle me-2"></i>
-            No results yet @(selectedCategory != null ? $"for {selectedCategory}" : ""). Be the first!
-            <a href="/quiz" class="btn btn-primary ms-2">Take a Quiz</a>
-        </div>
-    }
-}
-
-<style>
-    .rank-badge { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.1rem; flex-shrink:0; }
-    .rank-gold   { background:#fff3cd; color:#997000; }
-    .rank-silver { background:#e2e3e5; color:#555; }
-    .rank-bronze { background:#f5e0d3; color:#8a4a00; }
-    .rank-other  { background:#f8f9fa; color:#666; }
-</style>
+    else if(!isLoading){<div class="empty-state"><i class="bi bi-trophy"></i><h3>The first place is waiting</h3><p>Complete a scored quiz to become the first learner on this board.</p><a class="btn btn-primary" href="/quiz">Take a quiz</a></div>}
+</div>
 
 @code {
-    private List<QuizResult> leaderboard = [];
-    private List<string> categories = [];
-    private string? selectedCategory;
-    private bool isLoading = true;
-
-    protected override async Task OnInitializedAsync() => await LoadLeaderboard();
-
-    private async Task FilterBy(string? category)
-    {
-        selectedCategory = category;
-        await LoadLeaderboard();
-    }
-
-    private async Task LoadLeaderboard()
-    {
-        try
-        {
-            isLoading = true;
-            leaderboard = await QuizBusinessService.GetLeaderboardAsync(15, selectedCategory);
-
-            // Build category list from all results for filter tabs
-            if (!categories.Any())
-            {
-                var all = await QuizBusinessService.GetLeaderboardAsync(200);
-                categories = all.Select(r => r.Category)
-                    .Where(c => !string.IsNullOrEmpty(c))
-                    .Distinct().OrderBy(c => c).ToList();
-            }
-        }
-        catch (Exception ex)
-        {
-            NotificationService.ShowError($"Failed to load leaderboard: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
-
-    private static string GetRankClass(int rank) => rank switch
-    {
-        1 => "rank-gold", 2 => "rank-silver", 3 => "rank-bronze", _ => "rank-other"
-    };
-
-    private static string GetRankIcon(int rank) => rank switch
-    {
-        1 => "🥇", 2 => "🥈", 3 => "🥉", _ => rank.ToString()
-    };
-
-    private static string GetCategoryIcon(string category) => category switch
-    {
-        "C#" => "💻", "ASP.NET Core" => "🌐", "Blazor" => "🔥",
-        "JavaScript" => "⚡", "Web Development" => "🕸️", "Database" => "🗄️",
-        "Entity Framework" => "🗃️", "Programming Concepts" => "📚",
-        "General" => "🧠", _ => "📝"
-    };
+    private List<QuizResult> leaderboard=[];private List<string> categories=[];private string? selectedCategory;private bool isLoading=true;
+    protected override async Task OnInitializedAsync()=>await LoadLeaderboard();
+    private async Task FilterBy(string? category){selectedCategory=category;await LoadLeaderboard();}
+    private async Task LoadLeaderboard(){try{isLoading=true;leaderboard=await QuizBusinessService.GetLeaderboardAsync(15,selectedCategory);if(!categories.Any()){var all=await QuizBusinessService.GetLeaderboardAsync(200);categories=all.Select(r=>r.Category).Where(c=>!string.IsNullOrEmpty(c)).Distinct().OrderBy(c=>c).ToList();}}catch(Exception ex){NotificationService.ShowError($"Failed to load leaderboard: {ex.Message}");}finally{isLoading=false;}}
+    private static string GetRankIcon(int rank)=>rank switch{1=>"🥇",2=>"🥈",3=>"🥉",_=>rank.ToString()};
+    private static string DisplayName(string? name)=>string.IsNullOrWhiteSpace(name)?"Anonymous learner":name;
+    private static string Initials(string? name){if(string.IsNullOrWhiteSpace(name))return "AL";var local=name.Split('@')[0];var words=local.Split(new[]{'.','_',' ','-'},StringSplitOptions.RemoveEmptyEntries);return string.Concat(words.Take(2).Select(w=>char.ToUpperInvariant(w[0])));}
 }
-</div>

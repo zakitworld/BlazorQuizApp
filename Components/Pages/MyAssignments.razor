@@ -1,0 +1,37 @@
+@page "/assignments"
+@attribute [Authorize]
+@using BlazorQuizApp.Models
+@using BlazorQuizApp.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject IAssignmentService AssignmentService
+@inject AuthenticationStateProvider Auth
+@inject NavigationManager Navigation
+
+<PageTitle>My assignments | Quiz App</PageTitle>
+<div class="workspace-shell learner-space">
+    <header class="workspace-header"><div><span class="eyebrow">Learning hub</span><h1>Your next milestone starts here</h1><p>Join an assignment, keep your momentum, and earn completion certificates.</p></div></header>
+    <section class="join-card"><div><span class="eyebrow">Have an access code?</span><h2>Join an assignment</h2></div><div class="join-control"><input class="form-control code-input" @bind="accessCode" maxlength="8" placeholder="ABCD2345" /><button class="btn btn-primary" @onclick="Redeem">Join</button></div>@if(!string.IsNullOrEmpty(error)){<small class="text-danger">@error</small>}</section>
+    <div class="section-heading mt-5"><div><span class="eyebrow">Available now</span><h2>Assignments</h2></div><span class="status-pill">@assignments.Count active</span></div>
+    @if(assignments.Count == 0)
+    {
+        <div class="empty-state"><i class="bi bi-journal-check"></i><h3>You’re all caught up</h3><p>Enter an access code above when your instructor shares the next assignment.</p></div>
+    }
+    else
+    {
+        <div class="assignment-grid">
+        @foreach(var assignment in assignments)
+        {
+            <article class="learning-card"><div class="learning-card-top"><span class="difficulty-chip">@(assignment.QuizTemplate.IsAdaptive ? "Adaptive" : "Standard")</span><i class="bi bi-arrow-up-right"></i></div><h3>@assignment.Title</h3><p>@(assignment.QuizTemplate.Description ?? "Complete this checkpoint and see where your learning stands.")</p><div class="learning-meta"><span><i class="bi bi-clock"></i>@assignment.QuizTemplate.TimeLimitMinutes min</span><span><i class="bi bi-bullseye"></i>@assignment.QuizTemplate.PassPercentage% pass</span><span><i class="bi bi-arrow-repeat"></i>@assignment.MaxAttempts attempt@(assignment.MaxAttempts==1?"":"s")</span></div><button class="btn btn-dark w-100" @onclick="() => OpenAssignment(assignment.Id)">Start assignment</button></article>
+        }
+        </div>
+    }
+</div>
+@code {
+    private string userId="", accessCode="", error=""; private List<QuizAssignment> assignments=[];
+    protected override async Task OnInitializedAsync(){userId=(await Auth.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier)??"";await Load();}
+    private async Task Load()=>assignments=await AssignmentService.GetAvailableAssignmentsAsync(userId);
+    private async Task Redeem(){var id=await AssignmentService.RedeemAccessCodeAsync(userId,accessCode);if(id.HasValue)Navigation.NavigateTo($"/assignment/{id}");else error="That code is invalid, expired, or restricted to another group.";}
+    private void OpenAssignment(int id) => Navigation.NavigateTo($"/assignment/{id}");
+}

@@ -1,0 +1,24 @@
+@page "/instructor/results"
+@attribute [Authorize(Roles = "Admin")]
+@using BlazorQuizApp.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using System.Security.Claims
+@inject ApplicationDbContext Db
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>Assignment insights | Quiz App</PageTitle>
+<div class="workspace-shell">
+    <header class="workspace-header"><div><span class="eyebrow">Learning analytics</span><h1>See where understanding clicks—and where it doesn’t.</h1><p>Completion, pass rates, and question-level signals across your assignments.</p></div><a class="btn btn-outline-secondary" href="/api/instructor/results.csv">Export results</a></header>
+    <div class="metric-grid"><article class="metric-card"><span>Attempts</span><strong>@results.Count</strong><small>Submitted assignments</small></article><article class="metric-card"><span>Average</span><strong>@Average.ToString("F0")%</strong><small>Across all attempts</small></article><article class="metric-card"><span>Pass rate</span><strong>@PassRate.ToString("F0")%</strong><small>Meeting the template target</small></article><article class="metric-card"><span>Certificates</span><strong>@results.Count(r=>r.CertificateCode!=null)</strong><small>Achievements issued</small></article></div>
+    <div class="workspace-grid">
+        <section class="surface-card span-7"><div class="section-heading"><div><span class="eyebrow">Assignments</span><h2>Performance overview</h2></div></div>@foreach(var item in summaries){<div class="insight-row"><div><strong>@item.Title</strong><small>@item.Attempts attempts · @item.PassRate.ToString("F0")% passed</small></div><div class="insight-bar"><span style="width:@item.Average%"></span></div><strong>@item.Average.ToString("F0")%</strong></div>}</section>
+        <section class="surface-card span-5"><div class="section-heading"><div><span class="eyebrow">Question signals</span><h2>Needs attention</h2></div></div>@foreach(var item in questionInsights.Take(10)){<div class="list-row"><div><strong>@item.Text</strong><small>@item.CorrectRate.ToString("F0")% answered correctly</small></div><span class="status-pill">@item.Attempts responses</span></div>}</section>
+    </div>
+</div>
+@code{
+    private List<QuizResult> results=[];private List<AssignmentSummary> summaries=[];private List<QuestionInsight> questionInsights=[];private double Average=>results.Count==0?0:results.Average(r=>r.ScorePercentage);private double PassRate=>results.Count==0?0:(double)results.Count(r=>r.IsPassed)/results.Count*100;
+    protected override async Task OnInitializedAsync(){var owner=(await Auth.GetAuthenticationStateAsync()).User.FindFirstValue(ClaimTypes.NameIdentifier);results=await Db.QuizResults.AsNoTracking().Where(r=>r.QuizAssignment!=null&&r.QuizAssignment.OwnerId==owner).Include(r=>r.QuizAssignment).Include(r=>r.Answers).ToListAsync();summaries=results.GroupBy(r=>r.QuizAssignment!.Title).Select(g=>new AssignmentSummary(g.Key,g.Count(),g.Average(x=>x.ScorePercentage),(double)g.Count(x=>x.IsPassed)/g.Count()*100)).OrderByDescending(x=>x.Attempts).ToList();var questionIds=results.SelectMany(r=>r.Answers).Select(a=>a.QuestionId).Distinct().ToList();var questions=await Db.QuizQuestions.AsNoTracking().Where(q=>questionIds.Contains(q.Id)).ToDictionaryAsync(q=>q.Id);questionInsights=results.SelectMany(r=>r.Answers).GroupBy(a=>a.QuestionId).Where(g=>questions.ContainsKey(g.Key)).Select(g=>new QuestionInsight(questions[g.Key].QuestionText,g.Count(),(double)g.Count(a=>a.SelectedOptionId==questions[g.Key].CorrectOptionId)/g.Count()*100)).OrderBy(x=>x.CorrectRate).ToList();}
+    private record AssignmentSummary(string Title,int Attempts,double Average,double PassRate);private record QuestionInsight(string Text,int Attempts,double CorrectRate);
+}

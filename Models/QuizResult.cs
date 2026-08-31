@@ -20,6 +20,13 @@ namespace BlazorQuizApp.Models
         public int CorrectAnswers { get; set; }
         public int Score { get; set; }
         public bool IsPracticeMode { get; set; }
+        public int? QuizAssignmentId { get; set; }
+        public QuizAssignment? QuizAssignment { get; set; }
+        public int AttemptNumber { get; set; }
+        public bool IsPassed { get; set; }
+
+        [StringLength(40)]
+        public string? CertificateCode { get; set; }
 
         public double ScorePercentage => TotalQuestions > 0 ? (double)CorrectAnswers / TotalQuestions * 100 : 0;
 

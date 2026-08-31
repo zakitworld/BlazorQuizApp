@@ -1,0 +1,43 @@
+@page "/admin"
+@attribute [Authorize(Roles = "Admin")]
+@using BlazorQuizApp.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Db
+
+<PageTitle>Administration | Quiz App</PageTitle>
+<div class="container py-4">
+    <h1>Administration</h1>
+    <div class="row g-3 my-2">
+        <div class="col-md-3"><div class="card card-body"><span class="text-muted">Users</span><strong class="fs-3">@userCount</strong></div></div>
+        <div class="col-md-3"><div class="card card-body"><span class="text-muted">Questions</span><strong class="fs-3">@questionCount</strong></div></div>
+        <div class="col-md-3"><div class="card card-body"><span class="text-muted">Completed quizzes</span><strong class="fs-3">@quizCount</strong></div></div>
+        <div class="col-md-3"><div class="card card-body"><span class="text-muted">Paid users</span><strong class="fs-3">@paidUsers</strong></div></div>
+    </div>
+    <div class="d-flex gap-2 my-4"><a class="btn btn-primary" href="/manage-questions">Question authoring</a><a class="btn btn-outline-primary" href="/admin/categories">Manage categories</a></div>
+    <div class="row g-4">
+        <div class="col-lg-6"><div class="card"><div class="card-header">Recent payments</div><div class="table-responsive"><table class="table mb-0">
+            <thead><tr><th>Reference</th><th>Tier</th><th>Status</th><th>Date</th></tr></thead><tbody>
+            @foreach (var p in payments) { <tr><td class="small">@p.Reference</td><td>@p.Tier</td><td>@p.Status</td><td>@p.CreatedAt.ToString("g")</td></tr> }
+            </tbody></table></div></div></div>
+        <div class="col-lg-6"><div class="card"><div class="card-header">Recent audit activity</div><div class="table-responsive"><table class="table mb-0">
+            <thead><tr><th>Action</th><th>User</th><th>Date</th></tr></thead><tbody>
+            @foreach (var a in audits) { <tr><td>@a.Action</td><td class="small">@(a.UserName ?? a.UserId ?? "System")</td><td>@a.CreatedAt.ToString("g")</td></tr> }
+            </tbody></table></div></div></div>
+    </div>
+</div>
+
+@code {
+    private int userCount, questionCount, quizCount, paidUsers;
+    private List<PaymentTransaction> payments = [];
+    private List<AuditLog> audits = [];
+    protected override async Task OnInitializedAsync()
+    {
+        userCount = await Db.Users.CountAsync();
+        questionCount = await Db.QuizQuestions.CountAsync();
+        quizCount = await Db.QuizResults.CountAsync(r => !r.IsPracticeMode);
+        paidUsers = await Db.Subscriptions.CountAsync(s => s.IsActive && s.Tier != SubscriptionTier.Free);
+        payments = await Db.PaymentTransactions.AsNoTracking().OrderByDescending(p => p.CreatedAt).Take(20).ToListAsync();
+        audits = await Db.AuditLogs.AsNoTracking().OrderByDescending(a => a.CreatedAt).Take(20).ToListAsync();
+    }
+}

@@ -20,10 +20,8 @@ namespace BlazorQuizApp.Tests.Integration
             ICacheService? cache = null,
             IValidationService? validation = null)
         {
-            var quizService = QuizServiceHelper.Create();
             return new QuizBusinessService(
                 context,
-                quizService,
                 NullLogger<QuizBusinessService>.Instance,
                 cache,
                 validation ?? new ValidationService());
@@ -388,6 +386,21 @@ namespace BlazorQuizApp.Tests.Integration
             Assert.Equal(1, ctx.QuizResults.Count());
             Assert.Equal(1, result.CorrectAnswers);
             Assert.Equal(1, result.TotalQuestions);
+            Assert.Equal(1, result.Score); // ignores the forged client score of 10
+        }
+
+        [Fact]
+        public async Task GetQuizResultByIdAsync_OtherUser_ReturnsNull()
+        {
+            using var ctx = DbContextHelper.Create();
+            var (question, user) = SeedQuestionAndUser(ctx);
+            var svc = CreateService(ctx);
+            var result = await svc.SubmitQuizAsync(
+                [new QuizAnswer { QuestionId = question.Id, SelectedOptionId = question.CorrectOptionId }],
+                user.Id, TimeSpan.FromSeconds(10), "C#", false, 999);
+
+            Assert.Null(await svc.GetQuizResultByIdAsync(result.Id, "another-user"));
+            Assert.NotNull(await svc.GetQuizResultByIdAsync(result.Id, user.Id));
         }
 
         [Fact]

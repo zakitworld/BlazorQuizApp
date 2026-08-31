@@ -30,8 +30,6 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
-    private ErrorBoundary? errorBoundary;
-
     private IComponentRenderMode? PageRenderMode =>
         !HttpContext.Request.Path.StartsWithSegments("/Account") && HttpContext.AcceptsInteractiveRouting() 
             ? InteractiveServer 

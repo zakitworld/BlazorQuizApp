@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using AspNetCoreRateLimit;
+using System.Security.Claims;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -87,7 +89,6 @@ try
     builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
     // Application Services
-    builder.Services.AddScoped<QuizService>();
     builder.Services.AddSingleton<INotificationService, NotificationService>();
     builder.Services.AddSingleton<ICacheService, CacheService>();
     builder.Services.AddSingleton<IValidationService, ValidationService>();
@@ -96,6 +97,9 @@ try
     builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
     builder.Services.AddScoped<IPaystackPaymentService, PaystackPaymentService>();
     builder.Services.AddScoped<IEmailService, EmailService>();
+    builder.Services.AddScoped<IAuditService, AuditService>();
+    builder.Services.AddScoped<IAssignmentService, AssignmentService>();
+    builder.Services.AddScoped<IQuestionStudioService, QuestionStudioService>();
 
     // Identity & Authentication
     builder.Services.AddCascadingAuthenticationState();
@@ -113,7 +117,8 @@ try
             options.ApplicationCookie?.Configure(opts =>
             {
                 opts.Cookie.HttpOnly = true;
-                opts.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                opts.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+                    ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
                 opts.Cookie.SameSite = SameSiteMode.Strict;
                 opts.ExpireTimeSpan = TimeSpan.FromDays(30);
                 opts.SlidingExpiration = true;
@@ -122,7 +127,7 @@ try
 
     builder.Services.AddIdentityCore<ApplicationUser>(options =>
         {
-            options.SignIn.RequireConfirmedAccount = false;
+            options.SignIn.RequireConfirmedAccount = true;
             options.Password.RequireDigit = true;
             options.Password.RequireLowercase = true;
             options.Password.RequireUppercase = true;
@@ -130,6 +135,7 @@ try
             options.Password.RequiredLength = 8;
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             options.Lockout.MaxFailedAccessAttempts = 5;
+            options.User.RequireUniqueEmail = true;
         })
         .AddRoles<IdentityRole>()
         .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -168,7 +174,8 @@ try
     builder.Services.AddAntiforgery(options =>
     {
         options.HeaderName = "X-CSRF-TOKEN";
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
         options.Cookie.SameSite = SameSiteMode.Strict;
     });
     
@@ -212,26 +219,48 @@ try
         .AddInteractiveServerRenderMode();
 
     // Health check endpoints
-    app.MapHealthChecks("/health");
-    app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains("ready") });
+    app.MapHealthChecks("/health").RequireAuthorization(policy => policy.RequireRole("Admin"));
+    app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains("ready") })
+        .RequireAuthorization(policy => policy.RequireRole("Admin"));
     app.MapHealthChecks("/health/live", new() { Predicate = _ => false });
 
     // Paystack webhook endpoint
     app.MapPost("/api/paystack/webhook", async (HttpContext context, IPaystackPaymentService paystackService) =>
     {
+        if (!context.Request.HasJsonContentType() || context.Request.ContentLength is > 1_048_576)
+            return Results.BadRequest();
+
         var payload = await new StreamReader(context.Request.Body).ReadToEndAsync();
         var signature = context.Request.Headers["x-paystack-signature"].ToString();
 
         var success = await paystackService.HandleWebhookAsync(payload, signature);
         return success ? Results.Ok() : Results.BadRequest();
-    });
+    }).DisableAntiforgery();
+
+    app.MapGet("/api/instructor/results.csv", async (ClaimsPrincipal user, ApplicationDbContext db) =>
+    {
+        var ownerId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        var rows = await db.QuizResults.AsNoTracking()
+            .Where(r => r.QuizAssignment != null && r.QuizAssignment.OwnerId == ownerId)
+            .Include(r => r.QuizAssignment).OrderByDescending(r => r.CompletedAt).ToListAsync();
+        static string Csv(string value) => $"\"{value.Replace("\"", "\"\"")}\"";
+        var csv = new StringBuilder("Assignment,Learner,Completed,Score,Passed,Attempt,Certificate\r\n");
+        foreach (var row in rows)
+            csv.AppendLine(string.Join(',', Csv(row.QuizAssignment!.Title), Csv(row.UserName),
+                row.CompletedAt.ToString("O"), row.ScorePercentage.ToString("F2"), row.IsPassed,
+                row.AttemptNumber, Csv(row.CertificateCode ?? string.Empty)));
+        return Results.File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", "assignment-results.csv");
+    }).RequireAuthorization(policy => policy.RequireRole("Admin"));
 
     // Additional endpoints required by the Identity /Account Razor components.
     app.MapAdditionalIdentityEndpoints();
 
-    // Ensure database is created and run migrations
-    using (var scope = app.Services.CreateScope())
+    // Development can apply migrations automatically. Production deployments should
+    // apply a reviewed idempotent migration script before starting the web process.
+    if (app.Environment.IsDevelopment() &&
+        builder.Configuration.GetValue("Database:ApplyMigrations", true))
     {
+        using var scope = app.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         try
         {
@@ -257,6 +286,10 @@ try
 
     app.Run();
 }
+catch (HostAbortedException)
+{
+    // Expected when EF Core design-time tooling stops the temporary host.
+}
 catch (Exception ex)
 {
     Log.Fatal(ex, "Application terminated unexpectedly");
@@ -278,22 +311,14 @@ public class IdentityEmailSender : IEmailSender<ApplicationUser>
 
     public async Task SendConfirmationLinkAsync(ApplicationUser user, string email, string confirmationLink)
     {
-        // Extract token from confirmation link
-        var uri = new Uri(confirmationLink);
-        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-        var token = query["code"] ?? "";
-
-        await _emailService.SendEmailVerificationAsync(email, user.Id, token);
+        await _emailService.SendEmailAsync(email, "Confirm your Quiz App account",
+            $"<p>Please confirm your account by <a href=\"{System.Net.WebUtility.HtmlEncode(confirmationLink)}\">clicking here</a>.</p>");
     }
 
     public async Task SendPasswordResetLinkAsync(ApplicationUser user, string email, string resetLink)
     {
-        // Extract token from reset link
-        var uri = new Uri(resetLink);
-        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-        var token = query["code"] ?? "";
-
-        await _emailService.SendPasswordResetAsync(email, token);
+        await _emailService.SendEmailAsync(email, "Reset your Quiz App password",
+            $"<p>Reset your password by <a href=\"{System.Net.WebUtility.HtmlEncode(resetLink)}\">clicking here</a>.</p>");
     }
 
     public async Task SendPasswordResetCodeAsync(ApplicationUser user, string email, string resetCode)

@@ -1,0 +1,13 @@
+@page "/certificate/{Code}"
+@attribute [Authorize]
+@using BlazorQuizApp.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using System.Security.Claims
+@inject ApplicationDbContext Db
+@inject AuthenticationStateProvider Auth
+
+<PageTitle>Completion certificate | Quiz App</PageTitle>
+@if(result!=null){<div class="certificate-page"><div class="certificate-mark">Q</div><span class="eyebrow">Certificate of achievement</span><h1>Learning, completed.</h1><p>This certifies that</p><h2>@result.UserName</h2><p>successfully completed</p><h3>@result.QuizAssignment!.Title</h3><div class="certificate-score">@result.ScorePercentage.ToString("F0")% score</div><div class="certificate-footer"><span>@result.CompletedAt.ToString("MMMM d, yyyy")</span><span>@result.CertificateCode</span></div><button class="btn btn-dark print-hide" onclick="window.print()">Print certificate</button></div>}
+@code{[Parameter]public string Code{get;set;}="";private QuizResult? result;protected override async Task OnInitializedAsync(){var user=(await Auth.GetAuthenticationStateAsync()).User;var id=user.FindFirstValue(ClaimTypes.NameIdentifier);var admin=user.IsInRole("Admin");result=await Db.QuizResults.AsNoTracking().Include(r=>r.QuizAssignment).SingleOrDefaultAsync(r=>r.CertificateCode==Code&&(admin||r.UserId==id));}}

@@ -9,6 +9,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject INotificationService NotificationService
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JS
 
 <PageTitle>Quiz Result Details</PageTitle>
 
@@ -168,6 +169,17 @@
     private bool isLoading = true;
     private string currentUserId = string.Empty;
     private Dictionary<int, QuizQuestion> questionCache = new();
+    private bool celebrationTriggered;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!celebrationTriggered && !isLoading && quizResult?.IsPassed == true)
+        {
+            celebrationTriggered = true;
+            var intensity = quizResult.ScorePercentage >= 99.5 ? "perfect" : "pass";
+            await JS.InvokeVoidAsync("quizCelebration.show", $"result-{quizResult.Id}", intensity);
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -181,15 +193,9 @@
                 currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
             }
 
-            quizResult = await QuizBusinessService.GetQuizResultByIdAsync(ResultId);
-            
-            // Verify ownership
-            if (quizResult != null && quizResult.UserId != currentUserId)
-            {
-                NotificationService.ShowError("You don't have permission to view this quiz result.");
-                quizResult = null;
-            }
-            else if (quizResult != null && quizResult.Answers != null)
+            quizResult = await QuizBusinessService.GetQuizResultByIdAsync(ResultId, currentUserId);
+
+            if (quizResult != null && quizResult.Answers != null)
             {
                 // Pre-load all questions for this result
                 await LoadAllQuestionsForResult();
@@ -213,6 +219,29 @@
         {
             if (!questionCache.ContainsKey(answer.QuestionId))
             {
+                if (!string.IsNullOrWhiteSpace(answer.QuestionTextSnapshot))
+                {
+                    var options = new List<QuizOption>
+                    {
+                        new() { Id = 1, Text = answer.SelectedAnswerSnapshot ?? "Skipped" }
+                    };
+                    var correctId = 1;
+                    if (!answer.IsCorrect && !string.IsNullOrWhiteSpace(answer.CorrectAnswerSnapshot))
+                    {
+                        correctId = 2;
+                        options.Add(new QuizOption { Id = 2, Text = answer.CorrectAnswerSnapshot });
+                    }
+                    answer.SelectedOptionId = 1;
+                    questionCache[answer.QuestionId] = new QuizQuestion
+                    {
+                        Id = answer.QuestionId,
+                        QuestionText = answer.QuestionTextSnapshot,
+                        CorrectOptionId = correctId,
+                        Options = options
+                    };
+                    continue;
+                }
+
                 try
                 {
                     var question = await QuizBusinessService.GetQuestionByIdAsync(answer.QuestionId);

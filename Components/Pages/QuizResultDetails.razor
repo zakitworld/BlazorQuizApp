@@ -18,16 +18,33 @@
 
     @if (!isLoading && quizResult != null)
     {
-        <div class="row mb-4">
-            <div class="col-12">
-                <button class="btn btn-outline-secondary mb-3" @onclick="GoBack">
-                    <i class="bi bi-arrow-left me-2"></i>Back to History
-                </button>
-                <h1 class="display-6">
-                    <i class="bi bi-clipboard-check text-primary me-3"></i>
-                    Quiz Result Details
+        <div class="row mb-4 align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="GoBack">
+                        <i class="bi bi-arrow-left me-1"></i>History
+                    </button>
+                    <span class="badge @QuizCategorySections.GetSectionBadgeClass(quizResult.Category) fs-6">
+                        @QuizCategorySections.GetIcon(quizResult.Category) @(string.IsNullOrWhiteSpace(quizResult.Category) ? "General Knowledge" : quizResult.Category)
+                    </span>
+                    <span class="badge bg-light text-dark border">
+                        @QuizCategorySections.GetSection(quizResult.Category)
+                    </span>
+                    @if (quizResult.IsPracticeMode)
+                    {
+                        <span class="badge bg-secondary-subtle text-secondary border">Practice Mode</span>
+                    }
+                </div>
+                <h1 class="display-6 mb-1">
+                    <i class="bi bi-clipboard-check text-primary me-2"></i>
+                    Assessment Result Details
                 </h1>
-                <p class="text-muted">Completed on @quizResult.CompletedAt.ToString("MMMM dd, yyyy 'at' HH:mm")</p>
+                <p class="text-muted mb-0">Completed on @quizResult.CompletedAt.ToString("MMMM dd, yyyy 'at' HH:mm")</p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <a href="@($"/quiz?category={Uri.EscapeDataString(quizResult.Category ?? "")}")" class="btn btn-primary">
+                    <i class="bi bi-arrow-repeat me-1"></i>Retake Quiz / Exam
+                </a>
             </div>
         </div>
 
@@ -69,6 +86,59 @@
                 </div>
             </div>
         </div>
+
+        @if (QuizCategorySections.IsStandardizedExam(quizResult.Category))
+        {
+            var isWaec = QuizCategorySections.GetSection(quizResult.Category) == QuizCategorySections.Waec;
+            var isLicensure = QuizCategorySections.GetSection(quizResult.Category) == QuizCategorySections.Licensure;
+
+            <div class="card mb-4 border-primary shadow-sm">
+                <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <span class="fw-semibold">
+                        <i class="bi bi-mortarboard-fill me-2"></i>Official Standardized Examination Evaluation
+                    </span>
+                    <span class="badge bg-light text-primary">@quizResult.Category</span>
+                </div>
+                <div class="card-body">
+                    @if (isWaec)
+                    {
+                        var stanine = ComputeWaecStanine(quizResult.ScorePercentage);
+                        <div class="row align-items-center">
+                            <div class="col-md-4 text-center border-end">
+                                <div class="display-4 fw-bold text-primary">@stanine.Grade</div>
+                                <div class="badge bg-primary fs-6 px-3 py-1">@stanine.Remarks</div>
+                            </div>
+                            <div class="col-md-8 ps-md-4 mt-3 mt-md-0">
+                                <h6 class="fw-bold mb-1">WAEC Official Stanine Scale Conversion</h6>
+                                <p class="text-muted mb-2">@stanine.Description</p>
+                                <div class="small text-secondary">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Grading follows official West African Examinations Council stanine metrics (Grade 1 Distinction down to Grade 9 Fail).
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (isLicensure)
+                    {
+                        var evalResult = ComputeLicensureEvaluation(quizResult.ScorePercentage);
+                        <div class="row align-items-center">
+                            <div class="col-md-4 text-center border-end">
+                                <div class="display-5 fw-bold @evalResult.BadgeClass">@evalResult.Status</div>
+                                <div class="badge @(evalResult.Passed ? "bg-success" : "bg-danger") fs-6 px-3 py-1 mt-1">@evalResult.Band</div>
+                            </div>
+                            <div class="col-md-8 ps-md-4 mt-3 mt-md-0">
+                                <h6 class="fw-bold mb-1">Licensure & Promotion Standards Board</h6>
+                                <p class="text-muted mb-2">@evalResult.Advice</p>
+                                <div class="small text-secondary">
+                                    <i class="bi bi-shield-check me-1"></i>
+                                    Evaluated against NTC Ghana Licensure / GES Promotion Examination benchmarks (Pass mark: 60%+).
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
 
         @if (quizResult.Answers != null && quizResult.Answers.Any())
         {
@@ -261,6 +331,34 @@
     private void GoBack()
     {
         NavigationManager.NavigateTo("/quiz-history");
+    }
+
+    private (string Grade, string Remarks, string Description) ComputeWaecStanine(double score)
+    {
+        return score switch
+        {
+            >= 80 => ("Grade 1", "Distinction", "Outstanding mastery of the curriculum, exceptional performance."),
+            >= 75 => ("Grade 2", "Distinction", "Strong analytical grasp and very high competency."),
+            >= 70 => ("Grade 3", "Merit", "Above average understanding across syllabus objectives."),
+            >= 65 => ("Grade 4", "Credit", "Good standard performance; solid foundation."),
+            >= 60 => ("Grade 5", "Credit", "Satisfactory completion of core competencies."),
+            >= 50 => ("Grade 6", "Credit", "Meets minimum credit requirements for certification."),
+            >= 45 => ("Grade 7", "Pass", "Basic pass level; recommended to revise weak topics."),
+            >= 40 => ("Grade 8", "Pass", "Weak pass; needs dedicated practice and remediation."),
+            _ => ("Grade 9", "Fail", "Below passing threshold; comprehensive review required.")
+        };
+    }
+
+    private (string Status, string Band, string BadgeClass, string Advice, bool Passed) ComputeLicensureEvaluation(double score)
+    {
+        if (score >= 80)
+            return ("Passed with Honours", "Professional Master (Tier 1)", "text-success", "Exemplary pedagogy, subject matter mastery, and code of conduct demonstrated.", true);
+        if (score >= 60)
+            return ("Qualified / Recommended", "Standard Pass (Tier 2)", "text-success", "Meets the official national regulatory benchmark for licensure and promotion.", true);
+        if (score >= 50)
+            return ("Borderline Deficiency", "Conditional Remediation", "text-warning", "Near pass mark. Review educational policies and curriculum guides before re-assessment.", false);
+
+        return ("Unsuccessful - Resit Needed", "Remediation Required", "text-danger", "Did not satisfy the minimum required passing score. Dedicated revision strongly advised.", false);
     }
 }
 

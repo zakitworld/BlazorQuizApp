@@ -30,8 +30,16 @@
         {
             var count = questionCounts.GetValueOrDefault(category.Name);
             <article class="category-row @(!category.IsActive ? "inactive" : "")">
-                <div class="category-mark"><i class="bi bi-folder2-open"></i></div>
-                <div><strong>@category.Name</strong><span>@count question@(count == 1 ? "" : "s") · order @category.SortOrder</span></div>
+                <div class="category-mark" style="font-size: 1.3rem;">@QuizCategorySections.GetIcon(category.Name)</div>
+                <div>
+                    <strong>@category.Name</strong>
+                    <span>
+                        @count question@(count == 1 ? "" : "s") · order @category.SortOrder · 
+                        <span class="badge @QuizCategorySections.GetSectionBadgeClass(QuizCategorySections.GetSection(category.Name)) py-0" style="font-size:0.72rem;">
+                            @QuizCategorySections.GetSection(category.Name)
+                        </span>
+                    </span>
+                </div>
                 <span class="status-pill">@(category.IsActive ? "Active" : "Retired")</span>
                 <div class="category-actions">
                     <button class="btn btn-sm btn-outline-secondary" @onclick="() => Toggle(category)">@(category.IsActive ? "Retire" : "Restore")</button>

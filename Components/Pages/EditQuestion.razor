@@ -50,7 +50,15 @@ else if (!isLoading && question != null)
                     <div class="col-md-6">
                         <label for="category" class="form-label">Category</label>
                         <InputSelect id="category" @bind-Value="questionForm.Category" class="form-select">
-                            @foreach (var category in categories.Where(x => x.IsActive || x.Name == questionForm.Category)) { <option value="@category.Name">@category.Name@(!category.IsActive ? " (retired)" : "")</option> }
+                            @foreach (var group in categories.Where(x => x.IsActive || x.Name == questionForm.Category).GroupBy(c => QuizCategorySections.GetSection(c.Name)))
+                            {
+                                <optgroup label="@group.Key">
+                                    @foreach (var category in group)
+                                    {
+                                        <option value="@category.Name">@QuizCategorySections.GetIcon(category.Name) @category.Name@(!category.IsActive ? " (retired)" : "")</option>
+                                    }
+                                </optgroup>
+                            }
                         </InputSelect>
                         <ValidationMessage For="@(() => questionForm.Category)" />
                     </div>

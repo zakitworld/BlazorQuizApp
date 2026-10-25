@@ -190,6 +190,16 @@ namespace BlazorQuizApp.Tests.Unit
         [InlineData("Programming Concepts")]
         [InlineData("Blazor")]
         [InlineData("Entity Framework")]
+        [InlineData("Computing")]
+        [InlineData("ICT")]
+        [InlineData("Networking")]
+        [InlineData("Cybersecurity")]
+        [InlineData("Ethical Hacking")]
+        [InlineData("Penetration Testing")]
+        [InlineData("BECE")]
+        [InlineData("WASSCE")]
+        [InlineData("TEACHERS PROMOTION")]
+        [InlineData("NTC Licensure Exams")]
         public void IsValidCategory_WhitelistedCategories_ReturnsTrue(string category)
         {
             Assert.True(_sut.IsValidCategory(category));

@@ -24,7 +24,10 @@ namespace BlazorQuizApp.Services
         private static readonly HashSet<string> ValidCategories = new(StringComparer.OrdinalIgnoreCase)
         {
             "General", "ASP.NET Core", "C#", "JavaScript", "Database",
-            "Web Development", "Programming Concepts", "Blazor", "Entity Framework"
+            "Web Development", "Programming Concepts", "Blazor", "Entity Framework",
+            "Computing", "ICT",
+            "Networking", "Cybersecurity", "Ethical Hacking", "Penetration Testing",
+            "BECE", "WASSCE", "TEACHERS PROMOTION", "NTC Licensure Exams"
         };
 
         private static readonly HashSet<string> ValidDifficulties = new(StringComparer.OrdinalIgnoreCase)

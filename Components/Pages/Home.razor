@@ -1,41 +1,115 @@
 @page "/"
 
-<PageTitle>BlazorQuiz — Learn with momentum</PageTitle>
+<PageTitle>BlazorQuiz — Tech Certifications & National Exam Prep</PageTitle>
 <div class="landing-page">
     <section class="landing-hero">
         <div class="landing-copy">
-            <span class="hero-kicker"><i class="bi bi-lightning-charge-fill"></i> Learn. Measure. Improve.</span>
-            <h1>Knowledge grows when progress feels visible.</h1>
-            <p>Focused quizzes, adaptive assignments, meaningful analytics, and real achievements—built into one calm learning space.</p>
+            <span class="hero-kicker"><i class="bi bi-lightning-charge-fill"></i> Tech Skills · Cybersecurity · National CBT Mocks</span>
+            <h1>Master Tech Skills. Pass National Exams.</h1>
+            <p>From Cybersecurity, Networking, and Coding to WAEC (BECE/WASSCE) and Teacher Licensure (NTC/GES) — practice under authentic timed conditions with instant answer breakdowns.</p>
             <div class="hero-actions">
                 <AuthorizeView>
                     <Authorized><a class="btn btn-primary btn-lg" href="/assignments">Continue learning <i class="bi bi-arrow-right"></i></a></Authorized>
                     <NotAuthorized><a class="btn btn-primary btn-lg" href="/Account/Register">Start learning free <i class="bi bi-arrow-right"></i></a></NotAuthorized>
                 </AuthorizeView>
-                <a class="btn btn-quiet btn-lg" href="/quiz"><i class="bi bi-play-circle"></i> Try a quiz</a>
+                <a class="btn btn-quiet btn-lg" href="/quiz"><i class="bi bi-play-circle"></i> Try a Quiz</a>
+                <a class="btn btn-outline-dark btn-lg" href="/quiz"><i class="bi bi-mortarboard-fill"></i> CBT Mock Exam</a>
             </div>
-            <div class="hero-proof"><div><strong>Adaptive</strong><span>Questions meet your level</span></div><div><strong>Actionable</strong><span>Insights beyond a score</span></div><div><strong>Rewarding</strong><span>Certificates that mark growth</span></div></div>
+            <div class="hero-proof">
+                <div><strong>Tech & Cyber</strong><span>Coding, Infosec & Labs</span></div>
+                <div><strong>National Exams</strong><span>BECE, WASSCE & NTC</span></div>
+                <div><strong>CBT Mock Engine</strong><span>Stanine grading & review</span></div>
+            </div>
         </div>
         <div class="hero-visual" aria-label="Learning progress preview">
             <div class="visual-grid"></div>
-            <article class="floating-panel progress-panel"><span class="eyebrow">Weekly momentum</span><strong>+18%</strong><div class="mini-bars"><i style="height:30%"></i><i style="height:48%"></i><i style="height:40%"></i><i style="height:72%"></i><i style="height:92%"></i></div></article>
-            <article class="floating-panel question-panel"><span class="difficulty-chip">Adaptive · Medium</span><h3>Which pattern keeps services loosely coupled?</h3><div class="mini-answer selected"><span>A</span>Dependency injection</div><div class="mini-answer"><span>B</span>Global state</div></article>
-            <div class="achievement-bubble"><i class="bi bi-award-fill"></i><span><strong>Milestone earned</strong>ASP.NET Core Foundations</span></div>
+            <article class="floating-panel progress-panel">
+                <span class="eyebrow">Weekly momentum</span>
+                <strong>+24%</strong>
+                <div class="mini-bars"><i style="height:35%"></i><i style="height:55%"></i><i style="height:45%"></i><i style="height:80%"></i><i style="height:95%"></i></div>
+            </article>
+            <article class="floating-panel question-panel">
+                <span class="difficulty-chip">CBT Mock · Medium</span>
+                <h3>Which core principle ensures that data remains accurate and untampered?</h3>
+                <div class="mini-answer selected"><span>A</span>Integrity (CIA Triad)</div>
+                <div class="mini-answer"><span>B</span>Non-repudiation</div>
+            </article>
+            <div class="achievement-bubble">
+                <i class="bi bi-award-fill text-warning"></i>
+                <span><strong>Milestone earned</strong>WAEC Distinction · Grade 1</span>
+            </div>
         </div>
     </section>
 
-    <section class="trust-strip"><span>One workspace for</span><strong>Independent learners</strong><i></i><strong>Instructors</strong><i></i><strong>Training teams</strong><i></i><strong>Schools</strong></section>
+    <section class="trust-strip">
+        <span>One workspace for</span>
+        <strong>Tech Professionals</strong><i></i>
+        <strong>BECE & WASSCE Candidates</strong><i></i>
+        <strong>In-Service Teachers (GES)</strong><i></i>
+        <strong>Licensure Candidates (NTC)</strong><i></i>
+        <strong>Schools & Tutors</strong>
+    </section>
 
     <section class="feature-story">
-        <div class="story-heading"><span class="eyebrow">A better learning loop</span><h2>Every attempt should tell you what to do next.</h2></div>
+        <div class="story-heading">
+            <span class="eyebrow">A better learning loop</span>
+            <h2>Every attempt gives you the tools to succeed.</h2>
+        </div>
         <div class="story-grid">
-            <article><span>01</span><i class="bi bi-compass"></i><h3>Start at the right level</h3><p>Adaptive assignments respond to performance during the attempt, keeping challenge productive.</p></article>
-            <article><span>02</span><i class="bi bi-graph-up-arrow"></i><h3>See the signal</h3><p>Category trends, question-level insights, and history turn scores into a useful direction.</p></article>
-            <article><span>03</span><i class="bi bi-patch-check"></i><h3>Mark real progress</h3><p>Pass milestones, earn verifiable certificates, and keep a record of every achievement.</p></article>
+            <article>
+                <span>01</span>
+                <i class="bi bi-mortarboard"></i>
+                <h3>Three Tailored Modes</h3>
+                <p>Switch between speed Timed Quizzes, stress-free Practice Mode with instant explanations, and full CBT Mock Exams with question flagging and stanine grades.</p>
+            </article>
+            <article>
+                <span>02</span>
+                <i class="bi bi-bullseye"></i>
+                <h3>Targeted Mistake Practice</h3>
+                <p>Never repeat an error. The targeted mistake bank isolates questions you missed so you can review and retake them until 100% mastered.</p>
+            </article>
+            <article>
+                <span>03</span>
+                <i class="bi bi-patch-check"></i>
+                <h3>Official Exam Evaluations</h3>
+                <p>Track your score trends, receive authentic WAEC Stanine reports (Grade 1–9), and earn verifiable certificates as your readiness grows.</p>
+            </article>
         </div>
     </section>
 
-    <section class="topic-rail"><div><span class="eyebrow">Explore the question bank</span><h2>Choose a path. Build momentum.</h2></div><div class="topic-pills"><a href="/quiz?category=C%23">C#</a><a href="/quiz?category=ASP.NET%20Core">ASP.NET Core</a><a href="/quiz?category=Blazor">Blazor</a><a href="/quiz?category=JavaScript">JavaScript</a><a href="/quiz?category=Database">Databases</a><a href="/quiz">All topics <i class="bi bi-arrow-right"></i></a></div></section>
+    <section class="topic-rail">
+        <div>
+            <span class="eyebrow">Explore the question bank</span>
+            <h2>Choose a path. Build momentum.</h2>
+            <p class="text-muted mt-2">Explore 16+ domains spanning computer science, enterprise cloud, and national exam curricula.</p>
+        </div>
+        <div class="topic-pills">
+            <a href="/quiz?category=Cybersecurity">🛡️ Cybersecurity</a>
+            <a href="/quiz?category=Ethical%20Hacking">🕵️ Ethical Hacking</a>
+            <a href="/quiz?category=Networking">📡 Networking</a>
+            <a href="/quiz?category=Penetration%20Testing">🎯 Penetration Testing</a>
+            <a href="/quiz?category=Computing">🖥️ Computing</a>
+            <a href="/quiz?category=ICT">💡 ICT</a>
+            <a href="/quiz?category=BECE">🎓 BECE</a>
+            <a href="/quiz?category=WASSCE">📜 WASSCE</a>
+            <a href="/quiz?category=TEACHERS%20PROMOTION">👨‍🏫 Teachers Promotion</a>
+            <a href="/quiz?category=NTC%20Licensure%20Exams">📑 NTC Licensure</a>
+            <a href="/quiz?category=C%23">C#</a>
+            <a href="/quiz?category=ASP.NET%20Core">ASP.NET Core</a>
+            <a href="/quiz?category=Blazor">Blazor</a>
+            <a href="/quiz?category=Database">Databases</a>
+            <a href="/quiz">All topics <i class="bi bi-arrow-right"></i></a>
+        </div>
+    </section>
 
-    <section class="home-cta"><div><span class="eyebrow">Your next milestone</span><h2>Make the next twenty minutes count.</h2></div><AuthorizeView><Authorized><a class="btn btn-light btn-lg" href="/assignments">Open learning hub</a></Authorized><NotAuthorized><a class="btn btn-light btn-lg" href="/Account/Register">Create free account</a></NotAuthorized></AuthorizeView></section>
+    <section class="home-cta">
+        <div>
+            <span class="eyebrow">Your next milestone</span>
+            <h2>Make the next twenty minutes count.</h2>
+        </div>
+        <AuthorizeView>
+            <Authorized><a class="btn btn-light btn-lg" href="/quiz">Take a mock exam</a></Authorized>
+            <NotAuthorized><a class="btn btn-light btn-lg" href="/Account/Register">Create free account</a></NotAuthorized>
+        </AuthorizeView>
+    </section>
 </div>

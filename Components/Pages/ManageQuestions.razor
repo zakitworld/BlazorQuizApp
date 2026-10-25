@@ -29,7 +29,15 @@
             <div class="col-md-3">
                 <select class="form-select" @bind="selectedCategory">
                     <option value="">All Categories</option>
-                    @foreach (var category in categories) { <option value="@category.Name">@category.Name@(!category.IsActive ? " (retired)" : "")</option> }
+                    @foreach (var group in categories.GroupBy(c => QuizCategorySections.GetSection(c.Name)))
+                    {
+                        <optgroup label="@group.Key">
+                            @foreach (var category in group)
+                            {
+                                <option value="@category.Name">@QuizCategorySections.GetIcon(category.Name) @category.Name@(!category.IsActive ? " (retired)" : "")</option>
+                            }
+                        </optgroup>
+                    }
                 </select>
             </div>
             <div class="col-md-3">
@@ -146,7 +154,15 @@ else if (!isLoading && !questions.Any())
                     <div class="col-md-6">
                         <label for="category" class="form-label">Category</label>
                         <InputSelect id="category" @bind-Value="newQuestion.Category" class="form-select">
-                            @foreach (var category in categories.Where(x => x.IsActive)) { <option value="@category.Name">@category.Name</option> }
+                            @foreach (var group in categories.Where(x => x.IsActive).GroupBy(c => QuizCategorySections.GetSection(c.Name)))
+                            {
+                                <optgroup label="@group.Key">
+                                    @foreach (var category in group)
+                                    {
+                                        <option value="@category.Name">@QuizCategorySections.GetIcon(category.Name) @category.Name</option>
+                                    }
+                                </optgroup>
+                            }
                         </InputSelect>
                         <ValidationMessage For="@(() => newQuestion.Category)" />
                     </div>

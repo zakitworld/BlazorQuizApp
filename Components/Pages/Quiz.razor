@@ -43,22 +43,33 @@
             </div>
 
             @* Mode toggle *@
-            <div class="d-flex justify-content-center gap-3 mb-4">
-                <button class="btn @(practiceMode ? "btn-outline-secondary" : "btn-primary") px-4"
-                        @onclick="() => practiceMode = false">
+            <div class="d-flex justify-content-center flex-wrap gap-2 mb-4">
+                <button class="btn @(quizMode == QuizMode.Timed ? "btn-primary shadow-sm" : "btn-outline-secondary") px-3"
+                        @onclick="() => SetMode(QuizMode.Timed)">
                     <i class="bi bi-stopwatch me-1"></i>Timed Quiz
                 </button>
-                <button class="btn @(practiceMode ? "btn-success" : "btn-outline-secondary") px-4"
-                        @onclick="() => practiceMode = true">
+                <button class="btn @(quizMode == QuizMode.Practice ? "btn-success shadow-sm" : "btn-outline-secondary") px-3"
+                        @onclick="() => SetMode(QuizMode.Practice)">
                     <i class="bi bi-book me-1"></i>Practice Mode
+                </button>
+                <button class="btn @(quizMode == QuizMode.ExamSimulation ? "btn-dark shadow-sm" : "btn-outline-secondary") px-3"
+                        @onclick="() => SetMode(QuizMode.ExamSimulation)">
+                    <i class="bi bi-mortarboard-fill me-1"></i>CBT Mock Exam
                 </button>
             </div>
 
-            @if (practiceMode)
+            @if (quizMode == QuizMode.Practice)
             {
                 <div class="alert alert-success text-center py-2 mb-4">
                     <i class="bi bi-info-circle me-1"></i>
-                    Practice mode: no timer, no score saved — just learn!
+                    Practice mode: untimed, instant explanations, pure learning!
+                </div>
+            }
+            else if (quizMode == QuizMode.ExamSimulation)
+            {
+                <div class="alert alert-dark text-center py-2 mb-4">
+                    <i class="bi bi-mortarboard me-1"></i>
+                    CBT Mock Exam: full exam conditions, navigate freely, flag questions for review, no spoilers until submission with official grade report!
                 </div>
             }
 
@@ -71,28 +82,60 @@
             }
             else
             {
-                <div class="row g-3 justify-content-center">
-                    @foreach (var cat in availableCategories)
-                    {
-                        var bestScore = bestScoresPerCategory.GetValueOrDefault(cat.Key, -1);
-                        <div class="col-6 col-md-4 col-lg-3">
-                            <button class="topic-card w-100 h-100 p-3 text-center border-0"
-                                    @onclick="() => StartQuiz(cat.Key)">
-                                <div class="topic-icon mb-2">@GetCategoryIcon(cat.Key)</div>
-                                <div class="fw-semibold">@cat.Key</div>
-                                <div class="text-muted small">@cat.Value q@(cat.Value != 1 ? "s" : "")</div>
-                                @if (bestScore >= 0)
-                                {
-                                    <div class="mt-1">
-                                        <span class="badge @GetScoreBadgeClass(bestScore)">
-                                            Best: @bestScore.ToString("F0")%
-                                        </span>
-                                    </div>
-                                }
-                            </button>
-                        </div>
-                    }
+                <div class="d-flex justify-content-center flex-wrap gap-2 mb-4">
+                    <button class="btn btn-sm @(activeSectionFilter == "All" ? "btn-dark shadow-sm" : "btn-outline-secondary") rounded-pill px-3 py-1"
+                            @onclick='() => activeSectionFilter = "All"'>
+                        All Topics (@availableCategories.Count)
+                    </button>
+                    <button class="btn btn-sm @(activeSectionFilter == QuizCategorySections.TechAndCyber ? "btn-dark shadow-sm" : "btn-outline-secondary") rounded-pill px-3 py-1"
+                            @onclick='() => activeSectionFilter = QuizCategorySections.TechAndCyber'>
+                        💻 Tech & Cyber
+                    </button>
+                    <button class="btn btn-sm @(activeSectionFilter == QuizCategorySections.NationalExams ? "btn-dark shadow-sm" : "btn-outline-secondary") rounded-pill px-3 py-1"
+                            @onclick='() => activeSectionFilter = QuizCategorySections.NationalExams'>
+                        🎓 National Exams (WAEC)
+                    </button>
+                    <button class="btn btn-sm @(activeSectionFilter == QuizCategorySections.ProfessionalLicensure ? "btn-dark shadow-sm" : "btn-outline-secondary") rounded-pill px-3 py-1"
+                            @onclick='() => activeSectionFilter = QuizCategorySections.ProfessionalLicensure'>
+                        👨‍🏫 Teacher & Licensure
+                    </button>
                 </div>
+
+                @if (!DisplayedCategories.Any())
+                {
+                    <div class="alert alert-light text-center border py-4 my-3">
+                        <p class="text-muted mb-0">No topics found in this section yet.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-3 justify-content-center">
+                        @foreach (var cat in DisplayedCategories)
+                        {
+                            var bestScore = bestScoresPerCategory.GetValueOrDefault(cat.Key, -1);
+                            var sectionName = QuizCategorySections.GetSection(cat.Key);
+                            <div class="col-6 col-md-4 col-lg-3">
+                                <button class="topic-card w-100 h-100 p-3 text-center border-0 position-relative"
+                                        @onclick="() => StartQuiz(cat.Key)">
+                                    <div class="topic-icon mb-2">@GetCategoryIcon(cat.Key)</div>
+                                    <div class="fw-semibold">@cat.Key</div>
+                                    <div class="text-muted small mb-1">@cat.Value q@(cat.Value != 1 ? "s" : "")</div>
+                                    <span class="badge @QuizCategorySections.GetSectionBadgeClass(sectionName) text-opacity-75" style="font-size: 0.68rem;">
+                                        @sectionName
+                                    </span>
+                                    @if (bestScore >= 0)
+                                    {
+                                        <div class="mt-2">
+                                            <span class="badge @GetScoreBadgeClass(bestScore)">
+                                                Best: @bestScore.ToString("F0")%
+                                            </span>
+                                        </div>
+                                    }
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
             }
         </div>
     }
@@ -109,19 +152,34 @@
                     <i class="bi bi-arrow-left me-1"></i>Topics
                 </button>
                 <h2 class="mb-0 fw-bold me-auto">
-                    @Category Quiz
-                    @if (practiceMode)
+                    @Category @(isExamMode ? "CBT Mock Exam" : "Quiz")
+                    @if (quizMode == QuizMode.Practice)
                     {
                         <span class="badge bg-success ms-2 fs-6">Practice</span>
                     }
+                    else if (isExamMode)
+                    {
+                        <span class="badge bg-dark ms-2 fs-6"><i class="bi bi-mortarboard me-1"></i>Exam Mode</span>
+                    }
                 </h2>
-                @if (streak >= 3)
+                @if (isExamMode && currentQuestion != null)
+                {
+                    <button class="btn btn-sm @(flaggedQuestionIds.Contains(currentQuestion.Id) ? "btn-warning" : "btn-outline-warning")"
+                            @onclick="() => ToggleFlag(currentQuestion.Id)">
+                        <i class="bi @(flaggedQuestionIds.Contains(currentQuestion.Id) ? "bi-flag-fill" : "bi-flag") me-1"></i>
+                        @(flaggedQuestionIds.Contains(currentQuestion.Id) ? "Flagged" : "Flag Question")
+                    </button>
+                    <button class="btn btn-sm btn-danger ms-1" @onclick="() => showSubmitConfirm = true">
+                        <i class="bi bi-send-check me-1"></i>Finish & Submit
+                    </button>
+                }
+                @if (streak >= 3 && !isExamMode)
                 {
                     <span class="badge bg-warning text-dark fs-6">
                         🔥 @streak streak!
                     </span>
                 }
-                @if (!practiceMode)
+                @if (!practiceMode && !isExamMode)
                 {
                     <span class="badge bg-primary fs-6">
                         <i class="bi bi-star-fill me-1"></i>@currentScore pts
@@ -158,7 +216,7 @@
                                 </div>
                             </div>
                             <small class="text-muted">
-                                Question @(currentQuestionIndex + 1) of @questions.Count
+                                Question @(currentQuestionIndex + 1) of @questions.Count @(isExamMode ? $"({AnsweredCount} answered, {flaggedQuestionIds.Count} flagged)" : "")
                             </small>
                         </div>
                         <div class="col-12 col-lg-5 text-lg-end text-center">
@@ -178,10 +236,15 @@
                             @for (int i = 0; i < questions.Count; i++)
                             {
                                 var idx = i;
-                                var answered = userAnswers.Any(a => a.QuestionId == questions[idx].Id);
-                                <button class="btn btn-sm @GetNavButtonClass(idx, answered, idx == currentQuestionIndex)"
+                                var qId = questions[idx].Id;
+                                var answered = userAnswers.Any(a => a.QuestionId == qId && a.SelectedOptionId != -1);
+                                var flagged = flaggedQuestionIds.Contains(qId);
+                                var navClass = GetNavButtonClass(idx, answered, flagged, idx == currentQuestionIndex);
+                                <button class="btn btn-sm @navClass"
                                         @onclick="() => NavigateToQuestion(idx)"
-                                        title="Question @(idx+1)">@(idx + 1)</button>
+                                        title="@(flagged ? $"Question {idx + 1} (Flagged)" : $"Question {idx + 1}")">
+                                    @(idx + 1)@(flagged ? "🚩" : "")
+                                </button>
                             }
                         </div>
                     }
@@ -212,7 +275,7 @@
                                     var letter = char.ConvertFromUtf32(65 + i);
                                     <button class="btn w-100 mb-2 p-3 text-start option-btn @GetOptionClass(option)"
                                             @onclick="() => SelectOption(option)"
-                                            disabled="@isAnswered"
+                                            disabled="@(!isExamMode && isAnswered)"
                                             style="border-radius:8px; border:2px solid; transition:all .2s;">
                                         <span class="fw-bold me-2">@letter.</span>@option.Text
                                     </button>
@@ -221,8 +284,34 @@
                         </div>
                     </div>
 
+                    @if (isExamMode)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                            <button class="btn btn-outline-secondary" disabled="@(currentQuestionIndex == 0)" @onclick="PreviousQuestion">
+                                <i class="bi bi-arrow-left me-1"></i>Previous
+                            </button>
+                            <div class="text-muted small">
+                                Answered: @AnsweredCount of @questions.Count | Flagged: @flaggedQuestionIds.Count
+                            </div>
+                            <div class="d-flex gap-2">
+                                @if (currentQuestionIndex < questions.Count - 1)
+                                {
+                                    <button class="btn btn-primary" @onclick="NextQuestion">
+                                        Next <i class="bi bi-arrow-right ms-1"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-danger" @onclick="() => showSubmitConfirm = true">
+                                        <i class="bi bi-send-check me-1"></i>Finish & Submit
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+
                     @* Feedback + explanation *@
-                    @if (isAnswered)
+                    @if (!isExamMode && isAnswered)
                     {
                         <div class="feedback-section mt-3">
                             @if (isCurrentAnswerCorrect)
@@ -274,7 +363,7 @@
                             </div>
                         </div>
                     }
-                    else if (currentQuestionIndex > 0)
+                    else if (!isExamMode && currentQuestionIndex > 0)
                     {
                         <div class="mt-3">
                             <button class="btn btn-outline-secondary" @onclick="PreviousQuestion">
@@ -348,7 +437,33 @@
                         <div class="alert alert-info"><i class="bi bi-lightbulb me-2"></i>Keep studying and try again!</div>
                     }
 
+                    @* Stanine / National Exam Grade Card *@
+                    @if (IsNationalExamCategory || isExamMode)
+                    {
+                        var stanine = GetStanineGrade(quizResult.ScorePercentage);
+                        <div class="card mb-3 border-0 bg-light p-3 text-center">
+                            <span class="text-muted small text-uppercase fw-semibold">Official Exam Evaluation</span>
+                            <div class="d-flex align-items-center justify-content-center gap-3 my-2 flex-wrap">
+                                <span class="badge @stanine.BadgeClass fs-5 px-3 py-2">@stanine.Grade</span>
+                                <span class="fs-5 fw-bold text-dark">@stanine.Description</span>
+                            </div>
+                            @if (Category == "NTC Licensure Exams" || Category == "TEACHERS PROMOTION")
+                            {
+                                var licStatus = GetLicensureStatus(quizResult.ScorePercentage);
+                                <div class="mt-1">
+                                    <span class="badge @licStatus.BadgeClass px-3 py-1">@licStatus.Status</span>
+                                </div>
+                            }
+                        </div>
+                    }
+
                     <div class="d-flex flex-wrap gap-2 justify-content-center">
+                        @if (MissedQuestionsCount > 0)
+                        {
+                            <button class="btn btn-danger shadow-sm px-3" @onclick="PracticeMissedQuestions">
+                                <i class="bi bi-bullseye me-1"></i>Practice Missed Questions (@MissedQuestionsCount)
+                            </button>
+                        }
                         <button class="btn btn-primary" @onclick="RestartQuiz">
                             <i class="bi bi-arrow-clockwise me-1"></i>Retry Topic
                         </button>
@@ -459,6 +574,51 @@
             </a>
         </div>
     }
+
+    @if (showSubmitConfirm)
+    {
+        <div class="modal fade show d-block" style="background: rgba(0,0,0,0.55);" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title"><i class="bi bi-mortarboard-fill me-2"></i>Submit Exam Confirmation</h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="() => showSubmitConfirm = false"></button>
+                    </div>
+                    <div class="modal-body text-center p-4">
+                        <p class="lead mb-3">Are you ready to submit your exam?</p>
+                        <div class="d-flex justify-content-center gap-3 mb-3">
+                            <div class="p-2 border rounded bg-light text-center" style="min-width: 90px;">
+                                <div class="h4 mb-0 text-success">@AnsweredCount</div>
+                                <small class="text-muted">Answered</small>
+                            </div>
+                            <div class="p-2 border rounded bg-light text-center" style="min-width: 90px;">
+                                <div class="h4 mb-0 text-secondary">@(questions.Count - AnsweredCount)</div>
+                                <small class="text-muted">Unanswered</small>
+                            </div>
+                            <div class="p-2 border rounded bg-light text-center" style="min-width: 90px;">
+                                <div class="h4 mb-0 text-warning">@flaggedQuestionIds.Count</div>
+                                <small class="text-muted">Flagged</small>
+                            </div>
+                        </div>
+                        @if (questions.Count - AnsweredCount > 0)
+                        {
+                            <div class="alert alert-warning py-2 small">
+                                <i class="bi bi-exclamation-triangle me-1"></i>You still have unanswered questions!
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="() => showSubmitConfirm = false">
+                            Continue Reviewing
+                        </button>
+                        <button type="button" class="btn btn-danger" @onclick="ConfirmAndSubmitExam">
+                            Yes, Submit Exam Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 }
 
 <style>
@@ -469,6 +629,7 @@
     .stat-box { background:#f8f9fa; border-radius:12px; }
     .option-btn { background:#fff; border-color:#dee2e6; }
     .option-btn:hover:not(:disabled) { border-color:#0d6efd; background:#f0f5ff; }
+    .option-btn.selected-exam { background:#e7f1ff; border-color:#0d6efd !important; color:#084298; font-weight:600; box-shadow:0 0 0 2px rgba(13,110,253,.25); }
     .option-btn.correct { background:#d1e7dd; border-color:#198754 !important; color:#0a3622; }
     .option-btn.wrong   { background:#f8d7da; border-color:#dc3545 !important; color:#58151c; }
     .option-btn.dim     { opacity:.55; }
@@ -483,12 +644,41 @@
     private List<QuizQuestion> questions = [];
     private Dictionary<string, int> availableCategories = [];
     private Dictionary<string, double> bestScoresPerCategory = [];
+    private string activeSectionFilter = "All";
+
+    private IEnumerable<KeyValuePair<string, int>> DisplayedCategories =>
+        activeSectionFilter == "All"
+            ? availableCategories
+            : availableCategories.Where(c => QuizCategorySections.GetSection(c.Key) == activeSectionFilter);
 
     private int currentQuestionIndex;
     private bool isAnswered;
     private bool isQuizCompleted;
     private bool isLoading = true;
-    private bool practiceMode;
+    public enum QuizMode
+    {
+        Timed,
+        Practice,
+        ExamSimulation
+    }
+
+    private QuizMode quizMode = QuizMode.Timed;
+    private bool practiceMode => quizMode == QuizMode.Practice;
+    private bool isExamMode => quizMode == QuizMode.ExamSimulation;
+    private HashSet<int> flaggedQuestionIds = [];
+    private bool showSubmitConfirm;
+
+    private int AnsweredCount => userAnswers.Count(a => a.SelectedOptionId != -1);
+    private int MissedQuestionsCount => quizResult != null ? (quizResult.TotalQuestions - quizResult.CorrectAnswers) : 0;
+    private bool IsNationalExamCategory => Category != null && (Category == "BECE" || Category == "WASSCE" || Category == "TEACHERS PROMOTION" || Category == "NTC Licensure Exams");
+
+    private void SetMode(QuizMode mode) => quizMode = mode;
+    private void ToggleFlag(int questionId)
+    {
+        if (!flaggedQuestionIds.Add(questionId))
+            flaggedQuestionIds.Remove(questionId);
+    }
+
     private bool isPaused;
     private bool showReview = true;
     private string loadingMessage = "Loading...";
@@ -636,6 +826,8 @@
         isQuizCompleted = false;
         isPaused = false;
         showReview = true;
+        showSubmitConfirm = false;
+        flaggedQuestionIds.Clear();
         userAnswers = [];
         quizResult = null;
         currentScore = 0;
@@ -663,7 +855,7 @@
 
     private async Task ConfirmBackToTopics()
     {
-        if (!isAnswered && userAnswers.Count > 0)
+        if (userAnswers.Count > 0 && !isQuizCompleted)
         {
             var ok = await JS.InvokeAsync<bool>("confirm", "Leave quiz and lose progress?");
             if (!ok) return;
@@ -674,7 +866,31 @@
     // ── Quiz logic ─────────────────────────────────────────
     private void SelectOption(QuizOption option)
     {
-        if (currentQuestion == null || isAnswered || isPaused) return;
+        if (currentQuestion == null || isPaused) return;
+
+        if (isExamMode)
+        {
+            var existingAnswer = userAnswers.FirstOrDefault(a => a.QuestionId == currentQuestion.Id);
+            if (existingAnswer != null)
+            {
+                existingAnswer.SelectedOptionId = option.Id;
+                existingAnswer.AnsweredAt = DateTime.UtcNow;
+            }
+            else
+            {
+                userAnswers.Add(new QuizAnswer
+                {
+                    QuestionId = currentQuestion.Id,
+                    SelectedOptionId = option.Id,
+                    AnsweredAt = DateTime.UtcNow,
+                    TimeTakenSeconds = (int)(DateTime.UtcNow - questionStartTime).TotalSeconds
+                });
+            }
+            StateHasChanged();
+            return;
+        }
+
+        if (isAnswered) return;
 
         var timeTaken = (int)(DateTime.UtcNow - questionStartTime).TotalSeconds;
 
@@ -730,9 +946,13 @@
         if (currentQuestionIndex < questions.Count - 1)
         {
             currentQuestionIndex++;
-            isAnswered = userAnswers.Any(a => a.QuestionId == questions[currentQuestionIndex].Id);
+            isAnswered = !isExamMode && userAnswers.Any(a => a.QuestionId == questions[currentQuestionIndex].Id);
             SetCurrentQuestionTimer();
             StateHasChanged();
+        }
+        else if (isExamMode)
+        {
+            showSubmitConfirm = true;
         }
         else
         {
@@ -745,7 +965,7 @@
         if (currentQuestionIndex > 0)
         {
             currentQuestionIndex--;
-            isAnswered = userAnswers.Any(a => a.QuestionId == questions[currentQuestionIndex].Id);
+            isAnswered = !isExamMode && userAnswers.Any(a => a.QuestionId == questions[currentQuestionIndex].Id);
             SetCurrentQuestionTimer();
             StateHasChanged();
         }
@@ -755,7 +975,7 @@
     {
         if (index < 0 || index >= questions.Count) return;
         currentQuestionIndex = index;
-        isAnswered = userAnswers.Any(a => a.QuestionId == questions[index].Id);
+        isAnswered = !isExamMode && userAnswers.Any(a => a.QuestionId == questions[index].Id);
         SetCurrentQuestionTimer();
         StateHasChanged();
     }
@@ -768,6 +988,30 @@
         StateHasChanged();
     }
 
+    private async Task ConfirmAndSubmitExam()
+    {
+        showSubmitConfirm = false;
+        await CompleteQuiz();
+    }
+
+    private void PracticeMissedQuestions()
+    {
+        var missedQuestionIds = userAnswers
+            .Where(a =>
+            {
+                var q = questions.FirstOrDefault(x => x.Id == a.QuestionId);
+                return q != null && a.SelectedOptionId != q.CorrectOptionId;
+            })
+            .Select(a => a.QuestionId)
+            .ToHashSet();
+
+        if (missedQuestionIds.Count == 0) return;
+
+        questions = questions.Where(q => missedQuestionIds.Contains(q.Id)).ToList();
+        quizMode = QuizMode.Practice;
+        ResetQuizState();
+    }
+
     private async Task CompleteQuiz()
     {
         try
@@ -777,6 +1021,19 @@
             {
                 if (!userAnswers.Any(a => a.QuestionId == q.Id))
                     userAnswers.Add(new QuizAnswer { QuestionId = q.Id, SelectedOptionId = -1, AnsweredAt = DateTime.UtcNow });
+            }
+
+            if (isExamMode)
+            {
+                currentScore = 0;
+                foreach (var a in userAnswers)
+                {
+                    var q = questions.FirstOrDefault(x => x.Id == a.QuestionId);
+                    if (q != null && a.SelectedOptionId == q.CorrectOptionId)
+                    {
+                        currentScore += AppSettings.Value.Quiz.GetPointsForDifficulty(q.Difficulty);
+                    }
+                }
             }
 
             var duration = DateTime.UtcNow - quizStartTime;
@@ -886,16 +1143,30 @@
 
     private string GetOptionClass(QuizOption option)
     {
-        if (!isAnswered || currentQuestion == null) return string.Empty;
-        if (option.Id == currentQuestion.CorrectOptionId) return "correct";
+        if (currentQuestion == null) return string.Empty;
+
         var userChoice = userAnswers.FirstOrDefault(a => a.QuestionId == currentQuestion.Id)?.SelectedOptionId;
+
+        if (isExamMode)
+        {
+            return userChoice == option.Id ? "selected-exam" : string.Empty;
+        }
+
+        if (!isAnswered) return string.Empty;
+        if (option.Id == currentQuestion.CorrectOptionId) return "correct";
         if (option.Id == userChoice) return "wrong";
         return "dim";
     }
 
-    private string GetNavButtonClass(int index, bool answered, bool isCurrent)
+    private string GetNavButtonClass(int index, bool answered, bool flagged, bool isCurrent)
     {
-        if (isCurrent) return answered ? "btn-primary" : "btn-warning";
+        if (isCurrent) return "btn-primary border border-2 border-dark fw-bold";
+        if (flagged) return "btn-warning text-dark fw-bold";
+        if (isExamMode)
+        {
+            return answered ? "btn-success" : "btn-outline-secondary";
+        }
+
         if (answered)
         {
             var a = userAnswers.FirstOrDefault(a => a.QuestionId == questions[index].Id);
@@ -904,12 +1175,23 @@
         return "btn-outline-secondary";
     }
 
-    private static string GetCategoryIcon(string category) => category switch
+    private static (string Grade, string Description, string BadgeClass) GetStanineGrade(double percentage) => percentage switch
     {
-        "C#" => "💻", "ASP.NET Core" => "🌐", "Blazor" => "🔥",
-        "JavaScript" => "⚡", "Web Development" => "🕸️", "Database" => "🗄️",
-        "Entity Framework" => "🗃️", "Programming Concepts" => "📚", "General" => "🧠", _ => "📝"
+        >= 75 => ("Grade 1", "Distinction (Excellent)", "bg-success"),
+        >= 70 => ("Grade 2", "Distinction (Very Good)", "bg-success"),
+        >= 65 => ("Grade 3", "Credit (Good)", "bg-primary"),
+        >= 60 => ("Grade 4", "Credit (Satisfactory)", "bg-primary"),
+        >= 55 => ("Grade 5", "Credit (Above Average)", "bg-info text-dark"),
+        >= 50 => ("Grade 6", "Credit (Average)", "bg-info text-dark"),
+        >= 45 => ("Grade 7", "Pass", "bg-warning text-dark"),
+        >= 40 => ("Grade 8", "Pass", "bg-warning text-dark"),
+        _     => ("Grade 9", "Fail", "bg-danger")
     };
+
+    private static (string Status, string BadgeClass) GetLicensureStatus(double percentage) =>
+        percentage >= 50 ? ("LICENSED / PASSED", "bg-success") : ("NOT QUALIFIED / RETAKE NEEDED", "bg-danger");
+
+    private static string GetCategoryIcon(string category) => QuizCategorySections.GetIcon(category);
 
     private static string GetScoreBadgeClass(double score) =>
         score >= 80 ? "bg-success" : score >= 60 ? "bg-warning text-dark" : "bg-danger";

@@ -27,22 +27,23 @@
 
     @if (!isLoading && quizHistory.Any())
     {
-        <div class="row mb-3">
-            <div class="col-md-6">
+        <div class="row mb-3 g-2">
+            <div class="col-md-4">
                 <div class="input-group">
                     <span class="input-group-text">
                         <i class="bi bi-search"></i>
                     </span>
-                    <input type="text" class="form-control" placeholder="Search by date or score..." 
+                    <input type="text" class="form-control" placeholder="Search topic, score, date..." 
                            @bind="searchTerm" @bind:event="oninput" />
                 </div>
             </div>
             <div class="col-md-3">
-                <select class="form-select" @bind="sortOrder">
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                    <option value="highest">Highest Score</option>
-                    <option value="lowest">Lowest Score</option>
+                <select class="form-select" @bind="selectedTrack">
+                    <option value="all">All Tracks & Categories</option>
+                    <option value="@QuizCategorySections.Tech">💻 Tech & Cybersecurity</option>
+                    <option value="@QuizCategorySections.Waec">🎓 National Exams (WAEC)</option>
+                    <option value="@QuizCategorySections.Licensure">👨‍🏫 Teacher & Licensure Exams</option>
+                    <option value="@QuizCategorySections.General">🌐 General</option>
                 </select>
             </div>
             <div class="col-md-3">
@@ -53,6 +54,14 @@
                     <option value="poor">Needs Improvement (&lt;60%)</option>
                 </select>
             </div>
+            <div class="col-md-2">
+                <select class="form-select" @bind="sortOrder">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="highest">Highest Score</option>
+                    <option value="lowest">Lowest Score</option>
+                </select>
+            </div>
         </div>
 
         <div class="row g-4">
@@ -60,19 +69,35 @@
             {
                 <div class="col-12">
                     <div class="card shadow-sm">
-                        <div class="card-header d-flex justify-content-between align-items-center">
+                        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                             <div>
-                                <h5 class="mb-0">
-                                    <i class="bi bi-calendar-check me-2"></i>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                    <span class="badge @QuizCategorySections.GetSectionBadgeClass(result.Category) fs-6">
+                                        @QuizCategorySections.GetIcon(result.Category) @(string.IsNullOrWhiteSpace(result.Category) ? "General Knowledge" : result.Category)
+                                    </span>
+                                    @if (result.IsPracticeMode)
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border">Practice Mode</span>
+                                    }
+                                    @if (QuizCategorySections.IsStandardizedExam(result.Category))
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border">Official Exam Evaluation</span>
+                                    }
+                                </div>
+                                <h6 class="mb-0 text-muted small">
+                                    <i class="bi bi-calendar-check me-1"></i>
                                     @result.CompletedAt.ToString("MMMM dd, yyyy 'at' HH:mm")
-                                </h5>
+                                </h6>
                             </div>
-                            <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <span class="badge @GetScoreBadgeClass(result.ScorePercentage) fs-6">
                                     @result.ScorePercentage.ToString("F1")%
                                 </span>
+                                <a href="@($"/quiz?category={Uri.EscapeDataString(result.Category ?? "")}")" class="btn btn-sm btn-outline-success" title="Retake this topic">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Retake
+                                </a>
                                 <a href="/quiz-result/@result.Id" class="btn btn-sm btn-info">
-                                    <i class="bi bi-eye me-1"></i>View Full Details
+                                    <i class="bi bi-eye me-1"></i>View Details
                                 </a>
                                 <button class="btn btn-sm btn-outline-primary" 
                                         @onclick="() => ToggleDetails(result.Id)">
@@ -234,6 +259,7 @@
     private bool isLoading = true;
     private string currentUserId = string.Empty;
     private string searchTerm = string.Empty;
+    private string selectedTrack = "all";
     private string sortOrder = "newest";
     private string filterByScore = "all";
     private HashSet<int> expandedResults = new();
@@ -252,8 +278,15 @@
                 filtered = filtered.Where(r =>
                     r.CompletedAt.ToString("MMMM dd, yyyy").Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                     r.ScorePercentage.ToString().Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                    r.CorrectAnswers.ToString().Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                    r.CorrectAnswers.ToString().Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrEmpty(r.Category) && r.Category.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                 );
+            }
+
+            // Filter by track
+            if (selectedTrack != "all")
+            {
+                filtered = filtered.Where(r => QuizCategorySections.GetSection(r.Category) == selectedTrack);
             }
 
             // Filter by score
